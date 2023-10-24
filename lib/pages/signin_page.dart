@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:taxi_fleet_frontend_app/components/app_button.dart';
 import 'package:taxi_fleet_frontend_app/components/app_input.dart';
 import 'package:taxi_fleet_frontend_app/components/app_text.dart';
-import 'package:taxi_fleet_frontend_app/misc/colors.dart';
+import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
+import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 
 class SigninPage extends StatefulWidget {
   const SigninPage({super.key});
@@ -15,9 +16,10 @@ class _SigninPageState extends State<SigninPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Container(
-        margin: const EdgeInsets.only(top: 100),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 50),
+        margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.10),
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: MediaQuery.of(context).size.height * 0.06),
         child: Column(
           children: [
             //AppText aligned to the left
@@ -29,7 +31,7 @@ class _SigninPageState extends State<SigninPage> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 50),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.05),
             AppInput(
               icon: Icons.email,
               hintText: 'Email',
@@ -56,7 +58,7 @@ class _SigninPageState extends State<SigninPage> {
                 color: AppColors.primaryColor,
               ),
             ),
-            SizedBox(height: 25),
+            SizedBox(height: 20),
             //a horizontal line with text in the middle
             Row(
               children: [
@@ -82,7 +84,7 @@ class _SigninPageState extends State<SigninPage> {
                 ),
               ],
             ),
-            SizedBox(height: 25),
+            SizedBox(height: 20),
             //an empty container with a border
             Container(
               height: 50,
@@ -91,8 +93,13 @@ class _SigninPageState extends State<SigninPage> {
                 border: Border.all(color: AppColors.textColor),
                 borderRadius: BorderRadius.circular(10),
               ),
+              //google logo and onpressed function
+              child: IconButton(
+                icon: Image.asset(AppIcons.icGoogle),
+                onPressed: () {},
+              ),
             ),
-            SizedBox(height: 25),
+            SizedBox(height: 20),
             Align(
               alignment: Alignment.centerLeft,
               child: AppText(
@@ -101,7 +108,7 @@ class _SigninPageState extends State<SigninPage> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 5),
             AppButton(
               text: 'Sign up',
               fontSize: 20,

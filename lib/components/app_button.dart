@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:taxi_fleet_frontend_app/misc/colors.dart';
+import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 
 class AppButton extends StatelessWidget {
   final String text;
