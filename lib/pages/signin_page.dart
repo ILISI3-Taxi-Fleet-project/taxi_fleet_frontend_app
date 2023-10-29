@@ -3,6 +3,7 @@ import 'package:taxi_fleet_frontend_app/components/app_button.dart';
 import 'package:taxi_fleet_frontend_app/components/app_input.dart';
 import 'package:taxi_fleet_frontend_app/components/app_text.dart';
 import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
+import 'package:taxi_fleet_frontend_app/pages/signup_page.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 
 class SigninPage extends StatefulWidget {
@@ -13,6 +14,7 @@ class SigninPage extends StatefulWidget {
 }
 
 class _SigninPageState extends State<SigninPage> {
+  bool isObscure = true;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,13 +43,26 @@ class _SigninPageState extends State<SigninPage> {
               AppInput(
                 icon: Icons.lock,
                 hintText: 'Password',
-                obscureText: true,
+                obscureText: isObscure,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    isObscure ? Icons.visibility_off : Icons.visibility,
+                    color: AppColors.secondaryColor,
+                  ),
+                  onPressed: () => {
+                    setState(() {
+                      isObscure = !isObscure;
+                    })
+                  },
+                ),
               ),
               SizedBox(height: 20),
               AppButton(
                 text: 'Sign in',
                 fontSize: 20,
                 borderRadius: 75,
+                backgroundColor: AppColors.primaryColor,
+                onPressed: () => {},
               ),
               SizedBox(height: 10),
               Align(
@@ -115,6 +130,12 @@ class _SigninPageState extends State<SigninPage> {
                 fontSize: 20,
                 borderRadius: 75,
                 backgroundColor: AppColors.thirdColor,
+                onPressed: () => {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SignUpPage()),
+                  )
+                }
               ),
             ],
           ),
