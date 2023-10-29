@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:taxi_fleet_frontend_app/components/app_button.dart';
 import 'package:taxi_fleet_frontend_app/components/app_input.dart';
-import 'package:taxi_fleet_frontend_app/components/app_text.dart';
-import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 
 
@@ -16,13 +14,13 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage> {
   clientType _clientType = clientType.passenger;
   bool _isObscure = true;
-  Client _client = Client(
+  /*Client _client = Client(
     name: '',
     birthDate: '',
     phoneNumber: '',
     email: '',
     password: '',
-  );
+  );*/
 
   @override
   Widget build(BuildContext context) {
