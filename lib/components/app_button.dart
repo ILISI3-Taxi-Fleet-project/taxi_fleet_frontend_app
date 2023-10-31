@@ -4,22 +4,24 @@ import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 class AppButton extends StatelessWidget {
   final String text;
   final Color textColor;
-  final Color backgroundColor;
+  final Color? backgroundColor;
   final double borderRadius;
   final double buttonSize;
   final double fontSize;
   final FontWeight fontWeight;
   final double width = double.infinity;
+  final VoidCallback? onPressed;
 
   const AppButton({
     Key? key,
     required this.text,
     this.textColor = AppColors.textColor,
-    this.backgroundColor = AppColors.primaryColor,
+    this.backgroundColor,
     this.borderRadius = 10.0,
     this.buttonSize = 48.0,
     this.fontSize = 16.0,
     this.fontWeight = FontWeight.bold,
+    this.onPressed,
   }) : super(key: key);
 
   @override
@@ -28,7 +30,7 @@ class AppButton extends StatelessWidget {
       height: buttonSize,
       width: width,
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor,
           shape: RoundedRectangleBorder(

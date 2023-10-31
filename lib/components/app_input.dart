@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 
 class AppInput extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
   final String hintText;
   final bool obscureText;
+  final IconButton? suffixIcon;
 
   const AppInput({
     Key? key,
-    required this.icon,
+    this.icon,
     required this.hintText,
     this.obscureText = false,
+    this.suffixIcon,
   }) : super(key: key);
 
   @override
@@ -25,7 +27,8 @@ class AppInput extends StatelessWidget {
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: const TextStyle(color: AppColors.secondaryColor),
-          prefixIcon: Icon(icon),
+          prefixIcon: icon != null ? Icon(icon) : null,
+          suffixIcon: suffixIcon,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         ),
