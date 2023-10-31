@@ -5,6 +5,7 @@ import 'package:taxi_fleet_frontend_app/components/app_text.dart';
 import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
 import 'package:taxi_fleet_frontend_app/pages/main_page.dart';
 import 'package:taxi_fleet_frontend_app/pages/signup_page.dart';
+import 'package:taxi_fleet_frontend_app/services/api_service.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 
 class SigninPage extends StatefulWidget {
@@ -20,11 +21,14 @@ class _SigninPageState extends State<SigninPage> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
       
       String email = emailController.text;
       String password = passwordController.text;
-      if(true){
+      
+      bool response = await ApiService.login(email, password);
+      
+      if(response){
         // push route '/mainpage'
         Navigator.pushNamed(context, '/mainpage');
       }
