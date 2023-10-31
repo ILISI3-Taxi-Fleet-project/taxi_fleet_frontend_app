@@ -3,6 +3,7 @@ import 'package:taxi_fleet_frontend_app/components/app_button.dart';
 import 'package:taxi_fleet_frontend_app/components/app_input.dart';
 import 'package:taxi_fleet_frontend_app/components/app_text.dart';
 import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
+import 'package:taxi_fleet_frontend_app/pages/main_page.dart';
 import 'package:taxi_fleet_frontend_app/pages/signup_page.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 
@@ -15,6 +16,28 @@ class SigninPage extends StatefulWidget {
 
 class _SigninPageState extends State<SigninPage> {
   bool isObscure = true;
+  GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+
+  void _submitForm() {
+      
+      String email = emailController.text;
+      String password = passwordController.text;
+      if(true){
+        // push route '/mainpage'
+        Navigator.pushNamed(context, '/mainpage');
+      }
+
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,11 +59,13 @@ class _SigninPageState extends State<SigninPage> {
               ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.05),
               AppInput(
+                controller: emailController,
                 icon: Icons.email,
                 hintText: 'Email',
               ),
               SizedBox(height: 20),
               AppInput(
+                controller: passwordController,
                 icon: Icons.lock,
                 hintText: 'Password',
                 obscureText: isObscure,
@@ -62,7 +87,9 @@ class _SigninPageState extends State<SigninPage> {
                 fontSize: 20,
                 borderRadius: 75,
                 backgroundColor: AppColors.primaryColor,
-                onPressed: () => {},
+                onPressed: () => {
+                  _submitForm()
+                }
               ),
               SizedBox(height: 10),
               Align(
