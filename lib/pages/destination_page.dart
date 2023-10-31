@@ -41,7 +41,7 @@ class _DestinationSelectionPageState extends State<DestinationSelectionPage> {
         children: [
           TileLayer(
             urlTemplate:
-                    "https://api.mapbox.com/styles/v1/0x4ns/${AppConstants.mapBoxStyleId}/tiles/256/{z}/{x}/{y}@2x?access_token=${AppConstants.mapBoxAccessToken}",
+                 "https://api.mapbox.com/styles/v1/${AppConstants.mapBoxUsername}/${AppConstants.mapBoxStyleId}/tiles/256/{z}/{x}/{y}@2x?access_token=${AppConstants.mapBoxAccessToken}",
                 additionalOptions: const {
                   'mapStyleId': AppConstants.mapBoxStyleId,
                   'accessToken': AppConstants.mapBoxAccessToken,
