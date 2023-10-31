@@ -14,13 +14,21 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage> {
   clientType _clientType = clientType.passenger;
   bool _isObscure = true;
-  /*Client _client = Client(
-    name: '',
-    birthDate: '',
-    phoneNumber: '',
-    email: '',
-    password: '',
-  );*/
+  GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  TextEditingController firstNameController = TextEditingController();
+  TextEditingController lastNameController = TextEditingController();
+  TextEditingController phoneNumberController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+
+  void _submitForm() {
+      
+      String firstName = firstNameController.text;
+      String lastName = lastNameController.text;
+      String phoneNumber = phoneNumberController.text;
+      String email = emailController.text;
+      String password = passwordController.text;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,17 +80,20 @@ class _SignUpPageState extends State<SignUpPage> {
               SizedBox(height: MediaQuery.of(context).size.height * 0.04),
               AppInput(
                 icon: Icons.person,
-                hintText: 'Full name',
+                hintText: 'First name',
+                controller: firstNameController,
               ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.03),
               AppInput(
                 icon: Icons.calendar_today,
-                hintText: 'Birth date',
+                hintText: 'Last name',
+                controller: lastNameController,
               ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.03),
               AppInput(
                 icon: Icons.phone,
                 hintText: 'Phone number',
+                controller: phoneNumberController,
               ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.03),
               // Client Type
@@ -135,12 +146,14 @@ class _SignUpPageState extends State<SignUpPage> {
               AppInput(
                 icon: Icons.email,
                 hintText: 'Email',
+                controller: emailController,
               ),
               // password
               SizedBox(height: MediaQuery.of(context).size.height * 0.03),
               AppInput(
                 icon: Icons.lock,
                 hintText: 'Password',
+                controller: passwordController,
                 obscureText: _isObscure,
                 suffixIcon: IconButton(
                   icon: Icon(
@@ -167,7 +180,9 @@ class _SignUpPageState extends State<SignUpPage> {
           fontSize: 20,
           borderRadius: 75,
           backgroundColor: AppColors.primaryColor,
-          onPressed: () => {},
+          onPressed: () => {
+            _submitForm(),
+          },
         ),
       ),
     );
@@ -177,24 +192,3 @@ class _SignUpPageState extends State<SignUpPage> {
 
 // client type enum
 enum clientType { driver, passenger }
-
-// client class
-class Client {
-  String name;
-  String birthDate;
-  String phoneNumber;
-  String picture;
-  clientType type;
-  String email;
-  String password;
-
-  Client({
-    required this.name,
-    required this.birthDate,
-    required this.phoneNumber,
-    this.picture = '',
-    this.type = clientType.passenger,
-    required this.email,
-    required this.password,
-  });
-}

@@ -52,4 +52,4 @@ windows/flutter/generated_plugins.cmake
 macos/Flutter/GeneratedPluginRegistrant.swift
 
 # Ignore app constant files
-/lib/config/app_constants.dart
+# /lib/config/app_constants.dart
