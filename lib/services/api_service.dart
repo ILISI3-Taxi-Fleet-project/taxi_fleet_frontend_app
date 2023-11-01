@@ -1,4 +1,6 @@
 
+import 'dart:convert';
+
 import '../config/api_constants.dart';
 import 'package:http/http.dart' as http;
 
@@ -7,10 +9,17 @@ class ApiService {
   static Future<bool> login(String email, String password) async {
     try {
       var url = Uri.parse(ApiConstants.baseUrl + ApiConstants.loginEndpoint);
-      var response = await http.post(url, body: {
-        'email': email,
+      
+      var data = {
+        'username': email,
         'password': password,
-      });
+      };
+      
+      var headers = {
+        'Content-Type': 'application/json',
+      };
+
+      var response = await http.post(url,headers: headers, body: jsonEncode(data));
       if (response.statusCode == 200) {
         return true;
       }
@@ -24,14 +33,20 @@ class ApiService {
   static Future<bool> signup(String firstName, String lastName, String phone, String type, email, String password) async {
     try {
       var url = Uri.parse(ApiConstants.baseUrl + ApiConstants.signupEndpoint);
-      var response = await http.post(url, body: {
-        'firstName': firstName,
-        'lastName': lastName,
-        'phone': phone,
-        'type': type,
-        'email': email,
+      var data = {
+        'username': email,
         'password': password,
-      });
+        'prenom': firstName,
+        'nom': lastName,
+        'user_type': type,
+        'email': email,
+        'phone': phone,
+      };
+
+      var headers = {
+        'Content-Type': 'application/json',
+      };
+      var response = await http.post(url,headers: headers, body: jsonEncode(data));
       if (response.statusCode == 200) {
         return true;
       }
