@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
 import 'package:taxi_fleet_frontend_app/pages/destination_page.dart';
+import 'package:taxi_fleet_frontend_app/services/websocket_service.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -44,6 +45,8 @@ class _MainPageState extends State<MainPage> {
 
     _timer = Timer.periodic(Duration(seconds: 10), (timer) {
       _getCurrentLocation();
+      print("**********> $_userLocation");
+      WebSocketService.sendUserLocation(_userLocation);
     });
   }
 
@@ -66,7 +69,7 @@ class _MainPageState extends State<MainPage> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      print("=========> $position");
+      //print("=========> $position");
 
       setState(() {
         _userLocation = LatLng(position.latitude, position.longitude);
