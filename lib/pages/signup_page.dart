@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:taxi_fleet_frontend_app/components/app_button.dart';
 import 'package:taxi_fleet_frontend_app/components/app_input.dart';
+import 'package:taxi_fleet_frontend_app/services/api_service.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 
 
@@ -21,13 +22,19 @@ class _SignUpPageState extends State<SignUpPage> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
-  void _submitForm() {
-      
+  Future<void> _submitForm() async {
       String firstName = firstNameController.text;
       String lastName = lastNameController.text;
       String phoneNumber = phoneNumberController.text;
       String email = emailController.text;
       String password = passwordController.text;
+
+      bool response = await ApiService.signup(firstName, lastName, phoneNumber, _clientType.toString(), email, password);
+
+      if(response){
+        // push route '/mainpage'
+        Navigator.pushNamed(context, '/signinpage');
+      }
   }
 
   @override
