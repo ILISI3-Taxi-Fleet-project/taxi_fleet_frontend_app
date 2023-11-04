@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:stomp_dart_client/stomp.dart';
+import 'package:stomp_dart_client/stomp_config.dart';
+import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
 import 'package:taxi_fleet_frontend_app/pages/destination_page.dart';
-import 'package:taxi_fleet_frontend_app/services/websocket_service.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -21,6 +24,7 @@ class _MainPageState extends State<MainPage> {
   late LatLng _userLocation;
   late Marker _marker;
   late bool _firstLocationUpdate;
+  late StompClient _stompClient;
 
   Timer? _timer;
 
@@ -43,17 +47,42 @@ class _MainPageState extends State<MainPage> {
       LatLng(33.701523, -7.378711)*/
     ];
 
+    _stompClient = StompClient(
+      config: StompConfig(
+        url: 'ws://192.168.56.1:8081/ws', // Replace with your microservice's WebSocket endpoint
+        onConnect: onConnect, // Callback function for connection established
+        onWebSocketError: (dynamic error) => print('Error: $error'),
+      ),
+    );
+
+    _stompClient.activate();
+
+    //stomp client
+
     _timer = Timer.periodic(Duration(seconds: 10), (timer) {
       _getCurrentLocation();
       print("**********> $_userLocation");
-      WebSocketService.sendUserLocation(_userLocation);
+      sendLocation(_userLocation);
     });
   }
 
   @override
   void dispose() {
     _timer?.cancel(); // Dispose the timer when the widget is disposed
+    _stompClient.deactivate();
     super.dispose();
+  }
+
+  void sendLocation(userLocation) {
+    // Send location to the microservice
+    _stompClient.send(
+      destination: '/location', // Replace with your microservice's location endpoint
+      body: jsonEncode({'latitude': userLocation.latitude, 'longitude': userLocation.longitude}),
+    );
+  }
+
+  void onConnect(StompFrame frame) {
+    print('Connected to the server');
   }
 
   Future<void> _getCurrentLocation() async {

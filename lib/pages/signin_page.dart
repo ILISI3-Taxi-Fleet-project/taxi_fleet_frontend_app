@@ -3,7 +3,6 @@ import 'package:taxi_fleet_frontend_app/components/app_button.dart';
 import 'package:taxi_fleet_frontend_app/components/app_input.dart';
 import 'package:taxi_fleet_frontend_app/components/app_text.dart';
 import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
-import 'package:taxi_fleet_frontend_app/pages/main_page.dart';
 import 'package:taxi_fleet_frontend_app/pages/signup_page.dart';
 import 'package:taxi_fleet_frontend_app/services/api_service.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
