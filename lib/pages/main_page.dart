@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:stomp_dart_client/stomp.dart';
+import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
+import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
 import 'package:taxi_fleet_frontend_app/pages/destination_page.dart';
 
 class MainPage extends StatefulWidget {
@@ -20,12 +24,19 @@ class _MainPageState extends State<MainPage> {
   late LatLng _userLocation;
   late Marker _marker;
   late bool _firstLocationUpdate;
+  late StompClientConfig _stompClientConfig;
+  late StompClient _stompClient;
 
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
+    _stompClientConfig = StompClientConfig(
+      port: 8081, // Replace with your microservice's port
+      onConnect: onConnect,
+    );
+    _stompClient = _stompClientConfig.connect();
     _firstLocationUpdate = true;
     _mapController = MapController();
     _userLocation = const LatLng(0, 0);
@@ -42,15 +53,32 @@ class _MainPageState extends State<MainPage> {
       LatLng(33.701523, -7.378711)*/
     ];
 
+    //stomp client
+
     _timer = Timer.periodic(Duration(seconds: 10), (timer) {
       _getCurrentLocation();
+      print("**********> $_userLocation");
+      sendLocation(_userLocation);
     });
   }
 
   @override
   void dispose() {
     _timer?.cancel(); // Dispose the timer when the widget is disposed
+    _stompClient.deactivate();
     super.dispose();
+  }
+
+  void sendLocation(userLocation) {
+    // Send location to the microservice
+    _stompClient.send(
+      destination: '/location', // Replace with your microservice's location endpoint
+      body: jsonEncode({'latitude': userLocation.latitude, 'longitude': userLocation.longitude}),
+    );
+  }
+
+  void onConnect(StompFrame frame) {
+    print('Connected to the location service');
   }
 
   Future<void> _getCurrentLocation() async {
@@ -66,7 +94,7 @@ class _MainPageState extends State<MainPage> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      print("=========> $position");
+      //print("=========> $position");
 
       setState(() {
         _userLocation = LatLng(position.latitude, position.longitude);
