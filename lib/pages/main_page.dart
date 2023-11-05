@@ -6,9 +6,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:stomp_dart_client/stomp.dart';
-import 'package:stomp_dart_client/stomp_config.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
+import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
 import 'package:taxi_fleet_frontend_app/pages/destination_page.dart';
 
 class MainPage extends StatefulWidget {
@@ -24,6 +24,7 @@ class _MainPageState extends State<MainPage> {
   late LatLng _userLocation;
   late Marker _marker;
   late bool _firstLocationUpdate;
+  late StompClientConfig _stompClientConfig;
   late StompClient _stompClient;
 
   Timer? _timer;
@@ -31,6 +32,11 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
+    _stompClientConfig = StompClientConfig(
+      port: 8081, // Replace with your microservice's port
+      onConnect: onConnect,
+    );
+    _stompClient = _stompClientConfig.connect();
     _firstLocationUpdate = true;
     _mapController = MapController();
     _userLocation = const LatLng(0, 0);
@@ -46,16 +52,6 @@ class _MainPageState extends State<MainPage> {
       LatLng(33.701802, -7.376807),
       LatLng(33.701523, -7.378711)*/
     ];
-
-    _stompClient = StompClient(
-      config: StompConfig(
-        url: 'ws://192.168.56.1:8081/ws', // Replace with your microservice's WebSocket endpoint
-        onConnect: onConnect, // Callback function for connection established
-        onWebSocketError: (dynamic error) => print('Error: $error'),
-      ),
-    );
-
-    _stompClient.activate();
 
     //stomp client
 
@@ -82,7 +78,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   void onConnect(StompFrame frame) {
-    print('Connected to the server');
+    print('Connected to the location service');
   }
 
   Future<void> _getCurrentLocation() async {
