@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
 import 'package:taxi_fleet_frontend_app/pages/destination_page.dart';
+import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -32,11 +34,11 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
-    _stompClientConfig = StompClientConfig(
+    /*_stompClientConfig = StompClientConfig(
       port: 8081, // Replace with your microservice's port
       onConnect: onConnect,
     );
-    _stompClient = _stompClientConfig.connect();
+    _stompClient = _stompClientConfig.connect();*/
     _firstLocationUpdate = true;
     _mapController = MapController();
     _userLocation = const LatLng(0, 0);
@@ -58,14 +60,14 @@ class _MainPageState extends State<MainPage> {
     _timer = Timer.periodic(Duration(seconds: 10), (timer) {
       _getCurrentLocation();
       print("**********> $_userLocation");
-      sendLocation(_userLocation);
+      //sendLocation(_userLocation);
     });
   }
 
   @override
   void dispose() {
     _timer?.cancel(); // Dispose the timer when the widget is disposed
-    _stompClient.deactivate();
+    //_stompClient.deactivate();
     super.dispose();
   }
 
@@ -98,6 +100,7 @@ class _MainPageState extends State<MainPage> {
 
       setState(() {
         _userLocation = LatLng(position.latitude, position.longitude);
+        Provider.of<LocationProvider>(context, listen: false).updateUserLocation(_userLocation);
         _marker = _buildMarker(_userLocation);
         if (_firstLocationUpdate) {
           // Move the map to the user's location only for the first time

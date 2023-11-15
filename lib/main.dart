@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:taxi_fleet_frontend_app/pages/main_page.dart';
 import 'package:taxi_fleet_frontend_app/pages/signin_page.dart';
+import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => LocationProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
