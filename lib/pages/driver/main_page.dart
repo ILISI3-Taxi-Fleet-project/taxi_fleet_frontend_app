@@ -8,9 +8,10 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
+import 'package:taxi_fleet_frontend_app/components/client_marker.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
+import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
-import 'package:taxi_fleet_frontend_app/pages/destination_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
 
 class MainPage extends StatefulWidget {
@@ -119,30 +120,29 @@ class _MainPageState extends State<MainPage> {
       width: 80.0,
       height: 80.0,
       point: position,
-      child: const Icon(
-            Icons.location_on_rounded,
-            size: 50.0,
-            color: Colors.blue,
+      child: //taxi icon
+      Image.asset(
+        AppIcons.icTaxi,
+        //reduces the image size
+        scale: 0.8,
       ),
     );
   }
 
-  void _openDestinationSelectionPage() async {
-    final selectedAddress = await Navigator.of(context).push(
-      MaterialPageRoute<String>(
-        builder: (BuildContext context) => DestinationSelectionPage(
-          userLocation: _userLocation,
-        ),
-      ),
-    );
-
-    if (selectedAddress != null) {
-      print("Selected address: $selectedAddress");
-      // Handle the selected destination address and update the map.
-      // You can use geocoding to get the coordinates of the selected address.
-      // Update the _destinationLocation and set the destination marker on the map.
-    }
-  }
+  final mapMarkers = [
+  MapMarker(
+      image: null,
+      title: null,
+      address: null,
+      location: const LatLng(33.707173, -7.362968),
+      rating: null),
+  MapMarker(
+      image: null,
+      title: null,
+      address: null,
+      location: const LatLng(33.705118, -7.357584),
+      rating: null),
+];
 
   @override
   Widget build(BuildContext context) {
@@ -169,6 +169,17 @@ class _MainPageState extends State<MainPage> {
               MarkerLayer(
                 markers: [
                   _marker,
+                  //iterate through the mapMarkers list and add them to the map
+                  for (final marker in mapMarkers)
+                    Marker(
+                      point: marker.location,
+                      width: 40.0,
+                      height: 40.0,
+                      child: Image.asset(
+                              AppIcons.icClient,
+                              fit: BoxFit.cover,
+                            ), 
+                    ),
                 ],
               ),
               PolylineLayer(polylines: [
@@ -180,17 +191,6 @@ class _MainPageState extends State<MainPage> {
               ]
               ),
             ],
-          ),
-          // Updated Positioned widget for a more visually appealing design
-          Positioned(
-            bottom: 16.0,
-            left: 16.0,
-            child: ElevatedButton(
-              onPressed: () {
-                _openDestinationSelectionPage();
-              },
-              child: const Text('Choose Destination'),
-            ),
           ),
 
         ],
