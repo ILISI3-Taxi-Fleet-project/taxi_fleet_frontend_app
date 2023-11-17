@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:taxi_fleet_frontend_app/pages/main_page.dart';
+import 'package:taxi_fleet_frontend_app/pages/driver/main_page.dart';
 import 'package:taxi_fleet_frontend_app/pages/signin_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
 
@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
       ),
       home: const MainPage(),
       routes:{
-        '/mainpage': (context) => const MainPage(),
+        //'/mainpage': (context) => const MainPage(),
         '/signinpage': (context) => const SigninPage(),
       }
     );

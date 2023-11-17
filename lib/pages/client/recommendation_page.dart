@@ -8,6 +8,7 @@ import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
+import 'main_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
 
 class RecommendationPage extends StatefulWidget {
@@ -139,7 +140,12 @@ class _RecommendationPageState extends State<RecommendationPage> {
       //cancel trip button
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.pushNamed(context, '/mainpage');
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MainPage(),
+            ),
+          );
         },
         child: const Icon(Icons.cancel),
       ),
