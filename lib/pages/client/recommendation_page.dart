@@ -9,6 +9,7 @@ import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
+import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 import 'main_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
 
@@ -30,16 +31,19 @@ class _RecommendationPageState extends State<RecommendationPage> {
   late LatLng _userLocation;
   late Marker _marker;
   late List<Polyline> _polylines;
+  late bool _isMenuExpanded;
 
   @override
   void initState() {
     super.initState();
-    _stompClientConfig = StompClientConfig(
+    /*_stompClientConfig = StompClientConfig(
       port: 8083, // Replace with your microservice's port
       onConnect: onConnect,
     );
-    _stompClient = _stompClientConfig.connect();
+    _stompClient = _stompClientConfig.connect();*/
     // Listen to changes in the user location
+    _isMenuExpanded = false;
+
     Provider.of<LocationProvider>(context, listen: false).addListener(() {
       _updateUserLocation();
     });
@@ -106,6 +110,12 @@ class _RecommendationPageState extends State<RecommendationPage> {
     );
   }
 
+  void _toggleMenu() {
+            setState(() {
+              _isMenuExpanded = !_isMenuExpanded;
+            });
+          }
+
   Marker _buildMarker(LatLng position) {
     // Example of a different marker icon (you can replace this with your custom icon)
     return Marker(
@@ -129,7 +139,9 @@ class _RecommendationPageState extends State<RecommendationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FlutterMap(
+      body: Stack(
+        children: [
+      FlutterMap(
         mapController: _mapController,
         options: MapOptions(
           initialCenter: _userLocation,
@@ -154,17 +166,90 @@ class _RecommendationPageState extends State<RecommendationPage> {
           ),
         ],
       ),
-      //cancel trip button
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MainPage(),
+      Positioned(
+            bottom: 16.0,
+            left: 16.0,
+            child: FloatingActionButton(
+              heroTag: "cancelTrip",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MainPage(),
+                  ),
+                );
+              },
+              backgroundColor: AppColors.primaryColor,
+              child: const Icon(Icons.cancel),
             ),
-          );
-        },
-        child: const Icon(Icons.cancel),
+          ),
+        Positioned(
+                    bottom: 16.0,
+                    right: 16.0,
+                    child: Column(
+                      children: [
+                        AnimatedContainer(
+                          duration: Duration(milliseconds: 300),
+                          height: _isMenuExpanded ? 220.0 : 0.0,
+                          child: SingleChildScrollView(
+                              child: Column(
+                              children: [
+                                FloatingActionButton(
+                                  heroTag: "zoomIn",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _mapController.center,
+                                      _mapController.zoom + 0.5,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.add),
+                                ),
+                                SizedBox(height: 16.0),
+                                FloatingActionButton(
+                                  heroTag: "zoomOut",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _mapController.center,
+                                      _mapController.zoom - 0.5,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.remove),
+                                ),
+                                SizedBox(height: 16.0),
+                                FloatingActionButton(
+                                  heroTag: "gps",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _userLocation,
+                                      _mapController.zoom,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.gps_fixed),
+                                ),
+                                SizedBox(height: 16.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          //onTap: _toggleMenu,
+                          child: FloatingActionButton(
+                            heroTag: "menu",
+                            onPressed: _toggleMenu,
+                            backgroundColor: AppColors.primaryColor,
+                            child: Icon(
+                              _isMenuExpanded ? Icons.close : Icons.menu,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+      //cancel trip button
+      ],
       ),
     );
   }
