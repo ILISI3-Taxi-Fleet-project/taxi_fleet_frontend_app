@@ -10,6 +10,7 @@ import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
+import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 import 'destination_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
 
@@ -28,6 +29,7 @@ class _MainPageState extends State<MainPage> {
   late bool _firstLocationUpdate;
   late StompClientConfig _stompClientConfig;
   late StompClient _stompClient;
+  late bool _isMenuExpanded;
 
   Timer? _timer;
 
@@ -44,6 +46,7 @@ class _MainPageState extends State<MainPage> {
     _userLocation = const LatLng(0, 0);
     _marker = _buildMarker(_userLocation);
     _getCurrentLocation();
+    _isMenuExpanded = false;
     _polylineCoordinates = <LatLng>[
       /*LatLng(33.70639, -7.3533433),
       LatLng(33.707124, -7.353999),
@@ -127,6 +130,12 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
+  void _toggleMenu() {
+            setState(() {
+              _isMenuExpanded = !_isMenuExpanded;
+            });
+          }
+
   void _openDestinationSelectionPage() async {
     final selectedAddress = await Navigator.of(context).push(
       MaterialPageRoute<String>(
@@ -185,14 +194,87 @@ class _MainPageState extends State<MainPage> {
           Positioned(
             bottom: 16.0,
             left: 16.0,
-            child: ElevatedButton(
+            child: FloatingActionButton(
+              heroTag: "search",
               onPressed: () {
                 _openDestinationSelectionPage();
               },
-              child: const Text('Choose Destination'),
+              child: const Icon(Icons.search, size: 32),
+              backgroundColor: AppColors.primaryColor,
             ),
           ),
-
+          Positioned(
+                    bottom: 16.0,
+                    right: 16.0,
+                    child: Column(
+                      children: [
+                        AnimatedContainer(
+                          duration: Duration(milliseconds: 300),
+                          height: _isMenuExpanded ? 290.0 : 0.0,
+                          child: SingleChildScrollView(
+                              child: Column(
+                              children: [
+                                FloatingActionButton(
+                                  heroTag: "zoomIn",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _mapController.center,
+                                      _mapController.zoom + 0.5,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.add),
+                                ),
+                                SizedBox(height: 16.0),
+                                FloatingActionButton(
+                                  heroTag: "zoomOut",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _mapController.center,
+                                      _mapController.zoom - 0.5,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.remove),
+                                ),
+                                SizedBox(height: 16.0),
+                                FloatingActionButton(
+                                  heroTag: "gps",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _userLocation,
+                                      _mapController.zoom,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.gps_fixed),
+                                ),
+                                SizedBox(height: 16.0),
+                                FloatingActionButton(
+                                  heroTag: "settings",
+                                  onPressed: () {},
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.settings),
+                                ),
+                                SizedBox(height: 16.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          //onTap: _toggleMenu,
+                          child: FloatingActionButton(
+                            heroTag: "menu",
+                            onPressed: _toggleMenu,
+                            backgroundColor: AppColors.primaryColor,
+                            child: Icon(
+                              _isMenuExpanded ? Icons.close : Icons.menu,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
         ],
       ),
     );
