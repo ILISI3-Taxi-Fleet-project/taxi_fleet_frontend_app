@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geobase/geobase.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:stomp_dart_client/stomp.dart';
@@ -28,15 +29,16 @@ class _RecommendationPageState extends State<RecommendationPage> {
   late List<LatLng> _polylineCoordinates;
   late LatLng _userLocation;
   late Marker _marker;
+  late List<Polyline> _polylines;
 
   @override
   void initState() {
     super.initState();
-    /*_stompClientConfig = StompClientConfig(
+    _stompClientConfig = StompClientConfig(
       port: 8083, // Replace with your microservice's port
       onConnect: onConnect,
     );
-    _stompClient = _stompClientConfig.connect();*/
+    _stompClient = _stompClientConfig.connect();
     // Listen to changes in the user location
     Provider.of<LocationProvider>(context, listen: false).addListener(() {
       _updateUserLocation();
@@ -46,6 +48,7 @@ class _RecommendationPageState extends State<RecommendationPage> {
     _updateUserLocation();
     _mapController = MapController();
     _polylineCoordinates = <LatLng>[];
+    _polylines = <Polyline>[];
   }
 
   void _updateUserLocation() {
@@ -53,6 +56,27 @@ class _RecommendationPageState extends State<RecommendationPage> {
       _userLocation = Provider.of<LocationProvider>(context, listen: false).userLocation;
       _marker = _buildMarker(_userLocation);
     });
+  }
+
+  void decodeWkt(String multiLineString) {
+      final List<Polyline> polylines = <Polyline>[];
+      final geometry = MultiLineString.parse(multiLineString, format: WKT.geometry);
+      final Iterable<LineString> lines = geometry.lineStrings;
+      for (final line in lines) {
+        // iterate over the points in the line by 2 points
+        final List<LatLng> points = [];
+        for (var i = 0; i < line.chain.values.length; i += 2) {
+          points.add(LatLng(line.chain.values.elementAt(i + 1), line.chain.values.elementAt(i)));
+        }
+        polylines.add(Polyline(
+            points: points,
+            strokeWidth: 4.0,
+            color: Colors.blue,
+        ));
+      }
+      setState(() {
+        _polylines = polylines;
+      });
   }
 
   //send destination to the trip service when _stompClient is connected
@@ -65,19 +89,18 @@ class _RecommendationPageState extends State<RecommendationPage> {
         print('Received a message from the trip service: ${frame.body}');
         
         final Map<String, dynamic> data = jsonDecode(frame.body!);
-        final List<dynamic> coordinates = data['coordinates'];
-        final List<LatLng> points = coordinates.map((coord) => LatLng(coord['latitude'], coord['longitude'])).toList();
-        setState(() {
-          _polylineCoordinates = points;
-        });
+        final String coordinates = data['coordinates'];
+        decodeWkt(coordinates);
       },
     );
     _stompClient.send(
       destination: '/route',
       body: jsonEncode(
         {
-          'latitude': widget.destination.latitude,
-          'longitude': widget.destination.longitude,
+          'startLongitude' : _userLocation.longitude,
+          'startLatitude' : _userLocation.latitude,
+          'endLongitude': widget.destination.latitude,
+          'endLatitude': widget.destination.longitude,
         },
       ),
     );
@@ -127,13 +150,7 @@ class _RecommendationPageState extends State<RecommendationPage> {
             ],
           ),
           PolylineLayer(
-            polylines: [
-              Polyline(
-                points: _polylineCoordinates,
-                strokeWidth: 4.0,
-                color: Colors.blue,
-              ),
-            ],
+            polylines: _polylines,
           ),
         ],
       ),
