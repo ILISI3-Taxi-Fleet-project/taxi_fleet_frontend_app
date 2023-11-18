@@ -57,6 +57,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.6"
+  equatable:
+    dependency: transitive
+    description:
+      name: equatable
+      sha256: c2b87cb7756efdf69892005af546c56c0b5037f54d2a88269b4f347a505e3ca2
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.5"
   fake_async:
     dependency: transitive
     description:
@@ -96,6 +104,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  geobase:
+    dependency: "direct main"
+    description:
+      name: geobase
+      sha256: dd1a9a94f022f630ffe195dd93c69649e23b295f3df81da88906df9478752dd7
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   geolocator:
     dependency: "direct main"
     description:

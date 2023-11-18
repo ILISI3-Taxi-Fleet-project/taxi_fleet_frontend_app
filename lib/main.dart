@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:taxi_fleet_frontend_app/pages/driver/main_page.dart';
+import 'package:taxi_fleet_frontend_app/pages/client/main_page.dart';
 import 'package:taxi_fleet_frontend_app/pages/signin_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
 
