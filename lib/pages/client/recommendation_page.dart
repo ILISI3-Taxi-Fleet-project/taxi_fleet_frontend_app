@@ -99,8 +99,8 @@ class _RecommendationPageState extends State<RecommendationPage> {
         {
           'startLongitude' : _userLocation.longitude,
           'startLatitude' : _userLocation.latitude,
-          'endLongitude': widget.destination.latitude,
-          'endLatitude': widget.destination.longitude,
+          'endLongitude': widget.destination.longitude,
+          'endLatitude': widget.destination.latitude,
         },
       ),
     );
