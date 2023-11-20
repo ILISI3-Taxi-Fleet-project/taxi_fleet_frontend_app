@@ -24,12 +24,28 @@ class _SigninPageState extends State<SigninPage> {
       
       String email = emailController.text;
       String password = passwordController.text;
-      
-      bool response = await ApiService.login(email, password);
-      
-      if(response){
-        // push route '/mainpage'
-        Navigator.pushNamed(context, '/mainpage');
+
+      var response = await ApiService.login(email, password) as Map<String, dynamic>;
+
+      if (response != null && response['access-token'] != null) {
+        // Check if roles is a non-empty list
+        List<dynamic> roles = response['roles'];
+
+        if (roles.isNotEmpty) {
+          // Check for the existence of 'Passenger' or 'Driver' role
+          String clientType = roles.firstWhere((role) => (role['authority'] as String).startsWith('clientType.'))['authority'];
+          print("clientType: $clientType");
+          clientType = clientType.substring(clientType.indexOf('.') + 1).toLowerCase();
+
+          String routeName = '/${clientType}Home';
+
+          // Use the stored route name to push the route
+          Navigator.of(context).pushNamed(routeName);
+
+        } else {
+          // Handle the case where roles is an empty list
+          // This may indicate an issue with the server response
+        }
       }
 
   }
