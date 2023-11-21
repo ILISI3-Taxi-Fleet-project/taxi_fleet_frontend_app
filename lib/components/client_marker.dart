@@ -1,17 +1,15 @@
 import 'package:latlong2/latlong.dart';
 
 class MapMarker {
-  final String? image;
-  final String? title;
-  final String? address;
+  final String? fullName;
   final LatLng location;
   final int? rating;
+  final double? distance;
 
   MapMarker({
-    required this.image,
-    required this.title,
-    required this.address,
+    this.fullName,
     required this.location,
     required this.rating,
+    required this.distance,
   });
 }

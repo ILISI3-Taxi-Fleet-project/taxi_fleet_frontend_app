@@ -13,6 +13,7 @@ import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
 import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
+import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -29,6 +30,7 @@ class _MainPageState extends State<MainPage> {
   late bool _firstLocationUpdate;
   late StompClientConfig _stompClientConfig;
   late StompClient _stompClient;
+  late bool _isMenuExpanded;
 
   Timer? _timer;
 
@@ -40,6 +42,7 @@ class _MainPageState extends State<MainPage> {
       onConnect: onConnect,
     );
     _stompClient = _stompClientConfig.connect();*/
+    _isMenuExpanded = false;
     _firstLocationUpdate = true;
     _mapController = MapController();
     _userLocation = const LatLng(0, 0);
@@ -114,6 +117,12 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  void _toggleMenu() {
+            setState(() {
+              _isMenuExpanded = !_isMenuExpanded;
+            });
+          }
+
   Marker _buildMarker(LatLng position) {
     // Example of a different marker icon (you can replace this with your custom icon)
     return Marker(
@@ -131,17 +140,17 @@ class _MainPageState extends State<MainPage> {
 
   final mapMarkers = [
   MapMarker(
-      image: null,
-      title: null,
-      address: null,
+      fullName: "Client 1",
       location: const LatLng(33.707173, -7.362968),
-      rating: null),
+      rating: 3,
+      distance: 0.5
+      ),
   MapMarker(
-      image: null,
-      title: null,
-      address: null,
+      fullName: "Client 2",
       location: const LatLng(33.705118, -7.357584),
-      rating: null),
+      rating: 4,
+      distance: 0.7
+      ),
 ];
 
   @override
@@ -192,7 +201,212 @@ class _MainPageState extends State<MainPage> {
               ),
             ],
           ),
-
+          Positioned(
+            bottom: 16.0,
+            left: 16.0,
+            child: FloatingActionButton(
+              heroTag: "search",
+              onPressed: () {},
+              child: const Icon(Icons.search, size: 32),
+              backgroundColor: AppColors.primaryColor,
+            ),
+          ),
+          Positioned(
+                    bottom: 16.0,
+                    right: 16.0,
+                    child: Column(
+                      children: [
+                        AnimatedContainer(
+                          duration: Duration(milliseconds: 300),
+                          height: _isMenuExpanded ? 290.0 : 0.0,
+                          child: SingleChildScrollView(
+                              child: Column(
+                              children: [
+                                FloatingActionButton(
+                                  heroTag: "zoomIn",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _mapController.center,
+                                      _mapController.zoom + 0.5,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.add),
+                                ),
+                                SizedBox(height: 16.0),
+                                FloatingActionButton(
+                                  heroTag: "zoomOut",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _mapController.center,
+                                      _mapController.zoom - 0.5,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.remove),
+                                ),
+                                SizedBox(height: 16.0),
+                                FloatingActionButton(
+                                  heroTag: "gps",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _userLocation,
+                                      _mapController.zoom,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.gps_fixed),
+                                ),
+                                SizedBox(height: 16.0),
+                                FloatingActionButton(
+                                  heroTag: "settings",
+                                  onPressed: () {},
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.settings),
+                                ),
+                                SizedBox(height: 16.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          //onTap: _toggleMenu,
+                          child: FloatingActionButton(
+                            heroTag: "menu",
+                            onPressed: _toggleMenu,
+                            backgroundColor: AppColors.primaryColor,
+                            child: Icon(
+                              _isMenuExpanded ? Icons.close : Icons.menu,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // positioned card for client info at the top of the screen with an action button
+                  Positioned(
+                    top: 16.0,
+                    left: 16.0,
+                    right: 16.0,
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: 300),
+                      height: 290.0,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(16.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16.0),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 8.0,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 50.0,
+                                        height: 50.0,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8.0),
+                                        ),
+                                        child: const Icon(Icons.person),
+                                      ),
+                                      const SizedBox(width: 16.0),
+                                      const Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "Client 1",
+                                              style: TextStyle(
+                                                fontSize: 16.0,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            SizedBox(height: 4.0),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.star,
+                                                  size: 12.0,
+                                                  color: Colors.amber,
+                                                ),
+                                                Icon(
+                                                  Icons.star,
+                                                  size: 12.0,
+                                                  color: Colors.amber,
+                                                ),
+                                                Icon(
+                                                  Icons.star,
+                                                  size: 12.0,
+                                                  color: Colors.amber,
+                                                ),
+                                                Icon(
+                                                  Icons.star,
+                                                  size: 12.0,
+                                                  color: Colors.grey, // Empty star color
+                                                ),
+                                                Icon(
+                                                  Icons.star,
+                                                  size: 12.0,
+                                                  color: Colors.grey, // Empty star color
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Text(
+                                        "0.5 km",
+                                        style: TextStyle(
+                                          fontSize: 15.0,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16.0),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () {},
+                                          style: ElevatedButton.styleFrom(
+                                            primary: AppColors.primaryColor,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8.0),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            "Suggest",
+                                            style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.textColor,
+                                            ),
+                                            ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                      ),
+                    ),
+                  ),
+                ),
+                                      
         ],
       ),
     );

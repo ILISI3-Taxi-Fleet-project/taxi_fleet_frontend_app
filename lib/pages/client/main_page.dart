@@ -22,7 +22,6 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  late List<LatLng> _polylineCoordinates;
   late final MapController _mapController;
   late LatLng _userLocation;
   late Marker _marker;
@@ -37,7 +36,8 @@ class _MainPageState extends State<MainPage> {
   void initState() {
     super.initState();
     /*_stompClientConfig = StompClientConfig(
-      port: 8081, // Replace with your microservice's port
+      port: 8888,
+      serviceName: 'MSTXFLEET-LOCATION', // Replace with your microservice's port
       onConnect: onConnect,
     );
     _stompClient = _stompClientConfig.connect();*/
@@ -47,16 +47,6 @@ class _MainPageState extends State<MainPage> {
     _marker = _buildMarker(_userLocation);
     _getCurrentLocation();
     _isMenuExpanded = false;
-    _polylineCoordinates = <LatLng>[
-      /*LatLng(33.70639, -7.3533433),
-      LatLng(33.707124, -7.353999),
-      LatLng(33.705118, -7.357584),
-      LatLng(33.705664, -7.360265),
-      LatLng(33.707173, -7.362968),
-      LatLng(33.703613, -7.37202),
-      LatLng(33.701802, -7.376807),
-      LatLng(33.701523, -7.378711)*/
-    ];
 
     //stomp client
 
@@ -179,14 +169,6 @@ class _MainPageState extends State<MainPage> {
                 markers: [
                   _marker,
                 ],
-              ),
-              PolylineLayer(polylines: [
-                Polyline(
-                  points: _polylineCoordinates,
-                  strokeWidth: 4.0,
-                  color: Colors.blue,
-                ),
-              ]
               ),
             ],
           ),

@@ -32,17 +32,20 @@ class _RecommendationPageState extends State<RecommendationPage> {
   late Marker _marker;
   late List<Polyline> _polylines;
   late bool _isMenuExpanded;
+  late bool _isLoading;
 
   @override
   void initState() {
     super.initState();
     /*_stompClientConfig = StompClientConfig(
-      port: 8083, // Replace with your microservice's port
+      port: 8888,
+      serviceName: 'MSTXFLEET-TRIP', // Replace with your microservice's port
       onConnect: onConnect,
     );
     _stompClient = _stompClientConfig.connect();*/
     // Listen to changes in the user location
     _isMenuExpanded = false;
+    _isLoading = true;
 
     Provider.of<LocationProvider>(context, listen: false).addListener(() {
       _updateUserLocation();
@@ -53,6 +56,7 @@ class _RecommendationPageState extends State<RecommendationPage> {
     _mapController = MapController();
     _polylineCoordinates = <LatLng>[];
     _polylines = <Polyline>[];
+
   }
 
   void _updateUserLocation() {
@@ -89,11 +93,16 @@ class _RecommendationPageState extends State<RecommendationPage> {
     _stompClient.subscribe(
       destination: '/topic/route',
       callback: (StompFrame frame) {
+        //update isLoading to false
+        setState(() {
+          _isLoading = false;
+        });
+
         //get a list of LatLng coordinates from the message body
         print('Received a message from the trip service: ${frame.body}');
         
         final Map<String, dynamic> data = jsonDecode(frame.body!);
-        final String coordinates = data['coordinates'];
+        final String coordinates = data['path'];
         decodeWkt(coordinates);
       },
     );
@@ -139,7 +148,10 @@ class _RecommendationPageState extends State<RecommendationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      body: SafeArea(
+            child: IgnorePointer(
+              ignoring: _isLoading,
+              child: Stack(
         children: [
       FlutterMap(
         mapController: _mapController,
@@ -178,6 +190,7 @@ class _RecommendationPageState extends State<RecommendationPage> {
                     builder: (context) => const MainPage(),
                   ),
                 );
+                //dispose();
               },
               backgroundColor: AppColors.primaryColor,
               child: const Icon(Icons.cancel),
@@ -248,8 +261,28 @@ class _RecommendationPageState extends State<RecommendationPage> {
                       ],
                     ),
                   ),
+                  _isLoading ? Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
+                      color: Colors.grey.withOpacity(0.5),
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Calculating direction...',
+                              style: TextStyle(fontSize: 18),
+                            ),
+                            SizedBox(height: 10),
+                            CircularProgressIndicator(),
+                          ],
+                        ),
+                      ),
+                    ) : Container(),
       //cancel trip button
       ],
+      ),
+            ),
       ),
     );
   }
