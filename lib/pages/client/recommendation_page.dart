@@ -45,7 +45,7 @@ class _RecommendationPageState extends State<RecommendationPage> {
     _stompClient = _stompClientConfig.connect();*/
     // Listen to changes in the user location
     _isMenuExpanded = false;
-    _isLoading = true;
+    _isLoading = false;
 
     Provider.of<LocationProvider>(context, listen: false).addListener(() {
       _updateUserLocation();

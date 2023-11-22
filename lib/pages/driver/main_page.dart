@@ -38,26 +38,23 @@ class _MainPageState extends State<MainPage> {
   void initState() {
     super.initState();
     /*_stompClientConfig = StompClientConfig(
-      port: 8081, // Replace with your microservice's port
+      port: 8888,
+      serviceName: 'MSTXFLEET-LOCATION', // Replace with your microservice's port
       onConnect: onConnect,
     );
     _stompClient = _stompClientConfig.connect();*/
+    _stompClientConfig = StompClientConfig(
+      port: 8888,
+      serviceName: 'MSTXFLEET-TRIP', // Replace with your microservice's port
+      onConnect: onConnect,
+    );
+    _stompClient = _stompClientConfig.connect();
     _isMenuExpanded = false;
     _firstLocationUpdate = true;
     _mapController = MapController();
     _userLocation = const LatLng(0, 0);
     _marker = _buildMarker(_userLocation);
     _getCurrentLocation();
-    _polylineCoordinates = <LatLng>[
-      /*LatLng(33.70639, -7.3533433),
-      LatLng(33.707124, -7.353999),
-      LatLng(33.705118, -7.357584),
-      LatLng(33.705664, -7.360265),
-      LatLng(33.707173, -7.362968),
-      LatLng(33.703613, -7.37202),
-      LatLng(33.701802, -7.376807),
-      LatLng(33.701523, -7.378711)*/
-    ];
 
     //stomp client
 
@@ -84,7 +81,31 @@ class _MainPageState extends State<MainPage> {
   }
 
   void onConnect(StompFrame frame) {
-    print('Connected to the location service');
+    print('Connected to the trip service');
+    _stompClient.subscribe(
+      destination: '/topic/nearbyUsers',
+      callback: (StompFrame frame) {
+        //update isLoading to false
+        /*setState(() {
+          _isLoading = false;
+        });*/
+
+        //get a list of LatLng coordinates from the message body
+        print('Received a message from the trip service: ${frame.body}');
+        
+        final Map<String, dynamic> data = jsonDecode(frame.body!);
+        final List<dynamic> nearbyUsers = data['nearbyUsers'];
+        print('Received a message from the trip service: $nearbyUsers');
+      },
+    );
+    _stompClient.send(
+      destination: '/nearbyUsers',
+      body: jsonEncode(
+        {
+          'userId": "7',
+        },
+      ),
+    );
   }
 
   Future<void> _getCurrentLocation() async {
@@ -140,16 +161,14 @@ class _MainPageState extends State<MainPage> {
 
   final mapMarkers = [
   MapMarker(
-      fullName: "Client 1",
+      userId: "Client 1",
       location: const LatLng(33.707173, -7.362968),
       rating: 3,
-      distance: 0.5
       ),
   MapMarker(
-      fullName: "Client 2",
+      userId: "Client 2",
       location: const LatLng(33.705118, -7.357584),
       rating: 4,
-      distance: 0.7
       ),
 ];
 
@@ -161,8 +180,6 @@ class _MainPageState extends State<MainPage> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              //minZoom: 5,
-              //maxZoom: 18,
               initialZoom: 15,
               initialCenter: _userLocation,
             ),
@@ -191,14 +208,6 @@ class _MainPageState extends State<MainPage> {
                     ),
                 ],
               ),
-              PolylineLayer(polylines: [
-                Polyline(
-                  points: _polylineCoordinates,
-                  strokeWidth: 4.0,
-                  color: Colors.blue,
-                ),
-              ]
-              ),
             ],
           ),
           Positioned(
@@ -207,8 +216,8 @@ class _MainPageState extends State<MainPage> {
             child: FloatingActionButton(
               heroTag: "search",
               onPressed: () {},
-              child: const Icon(Icons.search, size: 32),
               backgroundColor: AppColors.primaryColor,
+              child: const Icon(Icons.search, size: 32),
             ),
           ),
           Positioned(

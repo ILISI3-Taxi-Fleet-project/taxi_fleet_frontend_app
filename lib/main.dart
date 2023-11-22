@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:taxi_fleet_frontend_app/pages/client/main_page.dart';
+import 'package:taxi_fleet_frontend_app/pages/driver/main_page.dart';
 import 'package:taxi_fleet_frontend_app/pages/signin_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
 
@@ -20,6 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Taxi Fleet App',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),

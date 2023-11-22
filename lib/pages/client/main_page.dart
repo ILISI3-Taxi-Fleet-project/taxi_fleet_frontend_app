@@ -151,8 +151,6 @@ class _MainPageState extends State<MainPage> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              //minZoom: 5,
-              //maxZoom: 18,
               initialZoom: 15,
               initialCenter: _userLocation,
             ),
@@ -181,8 +179,8 @@ class _MainPageState extends State<MainPage> {
               onPressed: () {
                 _openDestinationSelectionPage();
               },
-              child: const Icon(Icons.search, size: 32),
               backgroundColor: AppColors.primaryColor,
+              child: const Icon(Icons.search, size: 32),
             ),
           ),
           Positioned(
@@ -191,7 +189,7 @@ class _MainPageState extends State<MainPage> {
                     child: Column(
                       children: [
                         AnimatedContainer(
-                          duration: Duration(milliseconds: 300),
+                          duration: const Duration(milliseconds: 300),
                           height: _isMenuExpanded ? 290.0 : 0.0,
                           child: SingleChildScrollView(
                               child: Column(
@@ -205,9 +203,9 @@ class _MainPageState extends State<MainPage> {
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.add),
+                                  child: const Icon(Icons.add),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                                 FloatingActionButton(
                                   heroTag: "zoomOut",
                                   onPressed: () {
@@ -217,7 +215,7 @@ class _MainPageState extends State<MainPage> {
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.remove),
+                                  child: const Icon(Icons.remove),
                                 ),
                                 SizedBox(height: 16.0),
                                 FloatingActionButton(
