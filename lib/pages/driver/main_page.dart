@@ -116,8 +116,7 @@ class _MainPageState extends State<MainPage> {
         }
 
         setState(() {
-          _mapMarkers.clear();
-          _mapMarkers.addAll(mapMarkers);
+          _mapMarkers =mapMarkers;
         });
 
         print('Received a message from the trip service: $nearbyUsers');
