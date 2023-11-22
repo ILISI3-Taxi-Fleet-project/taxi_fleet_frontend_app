@@ -31,6 +31,7 @@ class _MainPageState extends State<MainPage> {
   late StompClientConfig _stompClientConfig;
   late StompClient _stompClient;
   late bool _isMenuExpanded;
+  late List<MapMarker> _mapMarkers;
 
   Timer? _timer;
 
@@ -49,6 +50,7 @@ class _MainPageState extends State<MainPage> {
       onConnect: onConnect,
     );
     _stompClient = _stompClientConfig.connect();
+    _mapMarkers = [];
     _isMenuExpanded = false;
     _firstLocationUpdate = true;
     _mapController = MapController();
@@ -91,20 +93,39 @@ class _MainPageState extends State<MainPage> {
         });*/
 
         //get a list of LatLng coordinates from the message body
-        print('Received a message from the trip service: ${frame.body}');
+        //print('Received a message from the trip service: ${frame.body}');
         
         final Map<String, dynamic> data = jsonDecode(frame.body!);
         final List<dynamic> nearbyUsers = data['nearbyUsers'];
+        // format the data is a List of object {userId,location is a string "POINT(lat lng)"}
+        List<MapMarker> mapMarkers = [];
+        for (final user in nearbyUsers) {
+          final String userId = user['userId'];
+          final String location = user['location'];
+          final List<String> latLng = location.substring(6, location.length - 1).split(' ');
+          final double latitude = double.parse(latLng[0]);
+          final double longitude = double.parse(latLng[1]);
+          final LatLng userLocation = LatLng(latitude, longitude);
+          
+
+          final MapMarker mapMarker = MapMarker(
+            userId: userId,
+            location: userLocation,
+          );
+          mapMarkers.add(mapMarker);
+        }
+
+        setState(() {
+          _mapMarkers.clear();
+          _mapMarkers.addAll(mapMarkers);
+        });
+
         print('Received a message from the trip service: $nearbyUsers');
       },
     );
     _stompClient.send(
       destination: '/nearbyUsers',
-      body: jsonEncode(
-        {
-          'userId": "7',
-        },
-      ),
+      body: "7"
     );
   }
 
@@ -159,8 +180,8 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  final mapMarkers = [
-  MapMarker(
+  //final mapMarkers = [];
+  /*MapMarker(
       userId: "Client 1",
       location: const LatLng(33.707173, -7.362968),
       rating: 3,
@@ -170,10 +191,11 @@ class _MainPageState extends State<MainPage> {
       location: const LatLng(33.705118, -7.357584),
       rating: 4,
       ),
-];
+];*/
 
   @override
   Widget build(BuildContext context) {
+    print("size of mapMarkers: ${_mapMarkers.length}");
     return Scaffold(
       body: Stack(
         children: [
@@ -196,7 +218,7 @@ class _MainPageState extends State<MainPage> {
                 markers: [
                   _marker,
                   //iterate through the mapMarkers list and add them to the map
-                  for (final marker in mapMarkers)
+                  for (final marker in _mapMarkers)
                     Marker(
                       point: marker.location,
                       width: 40.0,
@@ -205,7 +227,7 @@ class _MainPageState extends State<MainPage> {
                               AppIcons.icClient,
                               fit: BoxFit.cover,
                             ), 
-                    ),
+                    )
                 ],
               ),
             ],
