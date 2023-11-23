@@ -3,6 +3,7 @@ import 'package:taxi_fleet_frontend_app/components/app_button.dart';
 import 'package:taxi_fleet_frontend_app/components/app_input.dart';
 import 'package:taxi_fleet_frontend_app/components/app_text.dart';
 import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
+import 'package:taxi_fleet_frontend_app/helpers/shared_prefs.dart';
 import 'package:taxi_fleet_frontend_app/pages/signup_page.dart';
 import 'package:taxi_fleet_frontend_app/services/api_service.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
@@ -30,12 +31,15 @@ class _SigninPageState extends State<SigninPage> {
       if (response != null && response['access-token'] != null) {
         // Check if roles is a non-empty list
         List<dynamic> roles = response['roles'];
+        String userId = response['userId'];
 
         if (roles.isNotEmpty) {
           // Check for the existence of 'Passenger' or 'Driver' role
           String clientType = roles.firstWhere((role) => (role['authority'] as String).startsWith('clientType.'))['authority'];
           print("clientType: $clientType");
           clientType = clientType.substring(clientType.indexOf('.') + 1).toLowerCase();
+
+          SharedPrefs.setUserData(userId, clientType);
 
           String routeName = '/${clientType}Home';
 
@@ -68,7 +72,7 @@ class _SigninPageState extends State<SigninPage> {
           child: Column(
             children: [
               //AppText aligned to the left
-              Align(
+              const Align(
                 alignment: Alignment.centerLeft,
                 child: AppText(
                   text: 'Hey again!',
@@ -82,7 +86,7 @@ class _SigninPageState extends State<SigninPage> {
                 icon: Icons.email,
                 hintText: 'Email',
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               AppInput(
                 controller: passwordController,
                 icon: Icons.lock,
@@ -100,7 +104,7 @@ class _SigninPageState extends State<SigninPage> {
                   },
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               AppButton(
                 text: 'Sign in',
                 fontSize: 20,
@@ -110,8 +114,8 @@ class _SigninPageState extends State<SigninPage> {
                   _submitForm()
                 }
               ),
-              SizedBox(height: 10),
-              Align(
+              const SizedBox(height: 10),
+              const Align(
                 alignment: Alignment.center,
                 child: AppText(
                   text: 'Forgot password?',
@@ -120,7 +124,7 @@ class _SigninPageState extends State<SigninPage> {
                   color: AppColors.primaryColor,
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               //a horizontal line with text in the middle
               Row(
                 children: [
@@ -130,14 +134,14 @@ class _SigninPageState extends State<SigninPage> {
                       color: AppColors.textColor,
                     ),
                   ),
-                  SizedBox(width: 10),
-                  AppText(
+                  const SizedBox(width: 10),
+                  const AppText(
                     text: 'Or continue with',
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: AppColors.secondaryColor,
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Container(
                       height: 1,
@@ -146,7 +150,7 @@ class _SigninPageState extends State<SigninPage> {
                   ),
                 ],
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               //an empty container with a border
               Container(
                 height: 50,
@@ -161,8 +165,8 @@ class _SigninPageState extends State<SigninPage> {
                   onPressed: () {},
                 ),
               ),
-              SizedBox(height: 20),
-              Align(
+              const SizedBox(height: 20),
+              const Align(
                 alignment: Alignment.centerLeft,
                 child: AppText(
                   text: 'New here?',
@@ -170,7 +174,7 @@ class _SigninPageState extends State<SigninPage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 5),
+              const SizedBox(height: 5),
               AppButton(
                 text: 'Sign up',
                 fontSize: 20,
