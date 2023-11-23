@@ -96,17 +96,19 @@ class _MainPageState extends State<MainPage> {
         //print('Received a message from the trip service: ${frame.body}');
         
         final Map<String, dynamic> data = jsonDecode(frame.body!);
-        final List<dynamic> nearbyUsers = data['nearbyUsers'];
+        List<dynamic> nearbyUsers = json.decode(json.decode(data['nearbyUsers'])) as List<dynamic>;
+       // print(nearbyUsers);
+        /*final List<dynamic> nearbyUsers = jsonDecode(data['nearbyUsers']);*/
         // format the data is a List of object {userId,location is a string "POINT(lat lng)"}
         List<MapMarker> mapMarkers = [];
         for (final user in nearbyUsers) {
           final String userId = user['userId'];
           final String location = user['location'];
           final List<String> latLng = location.substring(6, location.length - 1).split(' ');
-          final double latitude = double.parse(latLng[0]);
-          final double longitude = double.parse(latLng[1]);
+          final double latitude = double.parse(latLng[1]);
+          final double longitude = double.parse(latLng[0]);
           final LatLng userLocation = LatLng(latitude, longitude);
-          
+          //print("userId: $userId , location: $userLocation");
 
           final MapMarker mapMarker = MapMarker(
             userId: userId,
@@ -116,15 +118,15 @@ class _MainPageState extends State<MainPage> {
         }
 
         setState(() {
-          _mapMarkers =mapMarkers;
+          _mapMarkers = mapMarkers;
         });
 
-        print('Received a message from the trip service: $nearbyUsers');
+        //print('Received a message from the trip service: $nearbyUsers');
       },
     );
     _stompClient.send(
       destination: '/nearbyUsers',
-      body: "7"
+      body: "1"
     );
   }
 
