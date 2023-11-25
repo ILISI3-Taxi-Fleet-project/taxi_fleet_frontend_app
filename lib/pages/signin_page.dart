@@ -64,8 +64,12 @@ class _SigninPageState extends State<SigninPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Container(
+      resizeToAvoidBottomInset: true,
+      body: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Container(
         margin: EdgeInsets.only(top: MediaQuery.of(context).size.height * 0.10),
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 20, vertical: MediaQuery.of(context).size.height * 0.06),
@@ -190,6 +194,7 @@ class _SigninPageState extends State<SigninPage> {
             ],
           ),
         )
+      ),
       ),
     );
   }
