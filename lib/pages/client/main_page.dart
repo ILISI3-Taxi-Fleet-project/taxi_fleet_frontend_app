@@ -23,7 +23,6 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  late List<LatLng> _polylineCoordinates;
   late final MapController _mapController;
   late LatLng _userLocation;
   late Marker _marker;
@@ -38,7 +37,8 @@ class _MainPageState extends State<MainPage> {
   void initState() {
     super.initState();
     /*_stompClientConfig = StompClientConfig(
-      port: 8081, // Replace with your microservice's port
+      port: 8888,
+      serviceName: 'MSTXFLEET-LOCATION', // Replace with your microservice's port
       onConnect: onConnect,
     );
     _stompClient = _stompClientConfig.connect();*/
@@ -48,16 +48,6 @@ class _MainPageState extends State<MainPage> {
     _marker = _buildMarker(_userLocation);
     _getCurrentLocation();
     _isMenuExpanded = false;
-    _polylineCoordinates = <LatLng>[
-      /*LatLng(33.70639, -7.3533433),
-      LatLng(33.707124, -7.353999),
-      LatLng(33.705118, -7.357584),
-      LatLng(33.705664, -7.360265),
-      LatLng(33.707173, -7.362968),
-      LatLng(33.703613, -7.37202),
-      LatLng(33.701802, -7.376807),
-      LatLng(33.701523, -7.378711)*/
-    ];
 
     //stomp client
 
@@ -169,8 +159,6 @@ class _MainPageState extends State<MainPage> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              //minZoom: 5,
-              //maxZoom: 18,
               initialZoom: 15,
               initialCenter: _userLocation,
             ),
@@ -188,14 +176,6 @@ class _MainPageState extends State<MainPage> {
                   _marker,
                 ],
               ),
-              PolylineLayer(polylines: [
-                Polyline(
-                  points: _polylineCoordinates,
-                  strokeWidth: 4.0,
-                  color: Colors.blue,
-                ),
-              ]
-              ),
             ],
           ),
           // Updated Positioned widget for a more visually appealing design
@@ -207,8 +187,8 @@ class _MainPageState extends State<MainPage> {
               onPressed: () {
                 _openDestinationSelectionPage();
               },
-              child: const Icon(Icons.search, size: 32),
               backgroundColor: AppColors.primaryColor,
+              child: const Icon(Icons.search, size: 32),
             ),
           ),
           Positioned(
@@ -217,7 +197,7 @@ class _MainPageState extends State<MainPage> {
                     child: Column(
                       children: [
                         AnimatedContainer(
-                          duration: Duration(milliseconds: 300),
+                          duration: const Duration(milliseconds: 300),
                           height: _isMenuExpanded ? 290.0 : 0.0,
                           child: SingleChildScrollView(
                               child: Column(
@@ -231,9 +211,9 @@ class _MainPageState extends State<MainPage> {
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.add),
+                                  child: const Icon(Icons.add),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                                 FloatingActionButton(
                                   heroTag: "zoomOut",
                                   onPressed: () {
@@ -243,7 +223,7 @@ class _MainPageState extends State<MainPage> {
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.remove),
+                                  child: const Icon(Icons.remove),
                                 ),
                                 SizedBox(height: 16.0),
                                 FloatingActionButton(

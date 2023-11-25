@@ -14,6 +14,7 @@ import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
 import 'package:taxi_fleet_frontend_app/helpers/shared_prefs.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
+import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -30,6 +31,8 @@ class _MainPageState extends State<MainPage> {
   late bool _firstLocationUpdate;
   late StompClientConfig _stompClientConfig;
   late StompClient _stompClient;
+  late bool _isMenuExpanded;
+  late List<MapMarker> _mapMarkers;
 
   Timer? _timer;
 
@@ -37,25 +40,24 @@ class _MainPageState extends State<MainPage> {
   void initState() {
     super.initState();
     /*_stompClientConfig = StompClientConfig(
-      port: 8081, // Replace with your microservice's port
+      port: 8888,
+      serviceName: 'MSTXFLEET-LOCATION', // Replace with your microservice's port
       onConnect: onConnect,
     );
     _stompClient = _stompClientConfig.connect();*/
+    _stompClientConfig = StompClientConfig(
+      port: 8888,
+      serviceName: 'MSTXFLEET-TRIP', // Replace with your microservice's port
+      onConnect: onConnect,
+    );
+    _stompClient = _stompClientConfig.connect();
+    _mapMarkers = [];
+    _isMenuExpanded = false;
     _firstLocationUpdate = true;
     _mapController = MapController();
     _userLocation = const LatLng(0, 0);
     _marker = _buildMarker(_userLocation);
     _getCurrentLocation();
-    _polylineCoordinates = <LatLng>[
-      /*LatLng(33.70639, -7.3533433),
-      LatLng(33.707124, -7.353999),
-      LatLng(33.705118, -7.357584),
-      LatLng(33.705664, -7.360265),
-      LatLng(33.707173, -7.362968),
-      LatLng(33.703613, -7.37202),
-      LatLng(33.701802, -7.376807),
-      LatLng(33.701523, -7.378711)*/
-    ];
 
     //stomp client
 
@@ -89,7 +91,51 @@ class _MainPageState extends State<MainPage> {
   }
 
   void onConnect(StompFrame frame) {
-    print('Connected to the location service');
+    print('Connected to the trip service');
+    _stompClient.subscribe(
+      destination: '/topic/nearbyUsers',
+      callback: (StompFrame frame) {
+        //update isLoading to false
+        /*setState(() {
+          _isLoading = false;
+        });*/
+
+        //get a list of LatLng coordinates from the message body
+        //print('Received a message from the trip service: ${frame.body}');
+        
+        final Map<String, dynamic> data = jsonDecode(frame.body!);
+        List<dynamic> nearbyUsers = json.decode(json.decode(data['nearbyUsers'])) as List<dynamic>;
+       // print(nearbyUsers);
+        /*final List<dynamic> nearbyUsers = jsonDecode(data['nearbyUsers']);*/
+        // format the data is a List of object {userId,location is a string "POINT(lat lng)"}
+        List<MapMarker> mapMarkers = [];
+        for (final user in nearbyUsers) {
+          final String userId = user['userId'];
+          final String location = user['location'];
+          final List<String> latLng = location.substring(6, location.length - 1).split(' ');
+          final double latitude = double.parse(latLng[1]);
+          final double longitude = double.parse(latLng[0]);
+          final LatLng userLocation = LatLng(latitude, longitude);
+          //print("userId: $userId , location: $userLocation");
+
+          final MapMarker mapMarker = MapMarker(
+            userId: userId,
+            location: userLocation,
+          );
+          mapMarkers.add(mapMarker);
+        }
+
+        setState(() {
+          _mapMarkers = mapMarkers;
+        });
+
+        //print('Received a message from the trip service: $nearbyUsers');
+      },
+    );
+    _stompClient.send(
+      destination: '/nearbyUsers',
+      body: "1"
+    );
   }
 
   Future<void> _getCurrentLocation() async {
@@ -122,6 +168,12 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  void _toggleMenu() {
+            setState(() {
+              _isMenuExpanded = !_isMenuExpanded;
+            });
+          }
+
   Marker _buildMarker(LatLng position) {
     // Example of a different marker icon (you can replace this with your custom icon)
     return Marker(
@@ -137,31 +189,28 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  final mapMarkers = [
-  MapMarker(
-      image: null,
-      title: null,
-      address: null,
+  //final mapMarkers = [];
+  /*MapMarker(
+      userId: "Client 1",
       location: const LatLng(33.707173, -7.362968),
-      rating: null),
+      rating: 3,
+      ),
   MapMarker(
-      image: null,
-      title: null,
-      address: null,
+      userId: "Client 2",
       location: const LatLng(33.705118, -7.357584),
-      rating: null),
-];
+      rating: 4,
+      ),
+];*/
 
   @override
   Widget build(BuildContext context) {
+    print("size of mapMarkers: ${_mapMarkers.length}");
     return Scaffold(
       body: Stack(
         children: [
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              //minZoom: 5,
-              //maxZoom: 18,
               initialZoom: 15,
               initialCenter: _userLocation,
             ),
@@ -178,7 +227,7 @@ class _MainPageState extends State<MainPage> {
                 markers: [
                   _marker,
                   //iterate through the mapMarkers list and add them to the map
-                  for (final marker in mapMarkers)
+                  for (final marker in _mapMarkers)
                     Marker(
                       point: marker.location,
                       width: 40.0,
@@ -187,20 +236,217 @@ class _MainPageState extends State<MainPage> {
                               AppIcons.icClient,
                               fit: BoxFit.cover,
                             ), 
-                    ),
+                    )
                 ],
-              ),
-              PolylineLayer(polylines: [
-                Polyline(
-                  points: _polylineCoordinates,
-                  strokeWidth: 4.0,
-                  color: Colors.blue,
-                ),
-              ]
               ),
             ],
           ),
-
+          Positioned(
+            bottom: 16.0,
+            left: 16.0,
+            child: FloatingActionButton(
+              heroTag: "search",
+              onPressed: () {},
+              backgroundColor: AppColors.primaryColor,
+              child: const Icon(Icons.search, size: 32),
+            ),
+          ),
+          Positioned(
+                    bottom: 16.0,
+                    right: 16.0,
+                    child: Column(
+                      children: [
+                        AnimatedContainer(
+                          duration: Duration(milliseconds: 300),
+                          height: _isMenuExpanded ? 290.0 : 0.0,
+                          child: SingleChildScrollView(
+                              child: Column(
+                              children: [
+                                FloatingActionButton(
+                                  heroTag: "zoomIn",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _mapController.center,
+                                      _mapController.zoom + 0.5,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.add),
+                                ),
+                                SizedBox(height: 16.0),
+                                FloatingActionButton(
+                                  heroTag: "zoomOut",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _mapController.center,
+                                      _mapController.zoom - 0.5,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.remove),
+                                ),
+                                SizedBox(height: 16.0),
+                                FloatingActionButton(
+                                  heroTag: "gps",
+                                  onPressed: () {
+                                    _mapController.move(
+                                      _userLocation,
+                                      _mapController.zoom,
+                                    );
+                                  },
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.gps_fixed),
+                                ),
+                                SizedBox(height: 16.0),
+                                FloatingActionButton(
+                                  heroTag: "settings",
+                                  onPressed: () {},
+                                  backgroundColor: AppColors.primaryColor,
+                                  child: Icon(Icons.settings),
+                                ),
+                                SizedBox(height: 16.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          //onTap: _toggleMenu,
+                          child: FloatingActionButton(
+                            heroTag: "menu",
+                            onPressed: _toggleMenu,
+                            backgroundColor: AppColors.primaryColor,
+                            child: Icon(
+                              _isMenuExpanded ? Icons.close : Icons.menu,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // positioned card for client info at the top of the screen with an action button
+                  Positioned(
+                    top: 16.0,
+                    left: 16.0,
+                    right: 16.0,
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: 300),
+                      height: 290.0,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(16.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16.0),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 8.0,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 50.0,
+                                        height: 50.0,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8.0),
+                                        ),
+                                        child: const Icon(Icons.person),
+                                      ),
+                                      const SizedBox(width: 16.0),
+                                      const Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "Client 1",
+                                              style: TextStyle(
+                                                fontSize: 16.0,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            SizedBox(height: 4.0),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.star,
+                                                  size: 12.0,
+                                                  color: Colors.amber,
+                                                ),
+                                                Icon(
+                                                  Icons.star,
+                                                  size: 12.0,
+                                                  color: Colors.amber,
+                                                ),
+                                                Icon(
+                                                  Icons.star,
+                                                  size: 12.0,
+                                                  color: Colors.amber,
+                                                ),
+                                                Icon(
+                                                  Icons.star,
+                                                  size: 12.0,
+                                                  color: Colors.grey, // Empty star color
+                                                ),
+                                                Icon(
+                                                  Icons.star,
+                                                  size: 12.0,
+                                                  color: Colors.grey, // Empty star color
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const Text(
+                                        "0.5 km",
+                                        style: TextStyle(
+                                          fontSize: 15.0,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16.0),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () {},
+                                          style: ElevatedButton.styleFrom(
+                                            primary: AppColors.primaryColor,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8.0),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            "Suggest",
+                                            style: TextStyle(
+                                              fontSize: 16.0,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.textColor,
+                                            ),
+                                            ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                      ),
+                    ),
+                  ),
+                ),
+                                      
         ],
       ),
     );
