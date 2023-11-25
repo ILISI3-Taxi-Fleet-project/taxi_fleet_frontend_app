@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
 
-  static Future<bool> login(String email, String password) async {
+  static Future<dynamic> login(String email, String password) async {
     try {
       var url = Uri.parse(ApiConstants.baseUrl + ApiConstants.loginEndpoint);
       
@@ -20,13 +20,11 @@ class ApiService {
       };
 
       var response = await http.post(url,headers: headers, body: jsonEncode(data));
-      if (response.statusCode == 200) {
-        return true;
-      }
-      return false;
+
+      return jsonDecode(response.body);
     } catch (e) {
       print(e.toString());
-      return false;
+      return null;
     }
   }
   

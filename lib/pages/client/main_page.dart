@@ -10,6 +10,7 @@ import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
+import 'package:taxi_fleet_frontend_app/helpers/shared_prefs.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 import 'destination_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
@@ -78,7 +79,14 @@ class _MainPageState extends State<MainPage> {
     // Send location to the microservice
     _stompClient.send(
       destination: '/location', // Replace with your microservice's location endpoint
-      body: jsonEncode({'latitude': userLocation.latitude, 'longitude': userLocation.longitude}),
+      body: jsonEncode(
+        {
+          'latitude': userLocation.latitude, 
+          'longitude': userLocation.longitude, 
+          'userId': SharedPrefs.userId,
+          'userType': SharedPrefs.role
+        }
+        ),
     );
   }
 

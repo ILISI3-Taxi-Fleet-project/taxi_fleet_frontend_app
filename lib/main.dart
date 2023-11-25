@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:taxi_fleet_frontend_app/pages/client/main_page.dart';
+import 'package:taxi_fleet_frontend_app/pages/client/main_page.dart' as clientHomePage;
+import 'package:taxi_fleet_frontend_app/pages/driver/main_page.dart' as driverHomePage;
 import 'package:taxi_fleet_frontend_app/pages/signin_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
 
@@ -25,9 +26,10 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MainPage(),
+      home: const SigninPage(),
       routes:{
-        //'/mainpage': (context) => const MainPage(),
+        '/passengerHome': (context) => const clientHomePage.MainPage(),
+        '/driverHome': (context) => const driverHomePage.MainPage(),
         '/signinpage': (context) => const SigninPage(),
       }
     );
