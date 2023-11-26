@@ -4,18 +4,22 @@ import 'package:taxi_fleet_frontend_app/pages/client/main_page.dart' as clientHo
 import 'package:taxi_fleet_frontend_app/pages/driver/main_page.dart' as driverHomePage;
 import 'package:taxi_fleet_frontend_app/pages/signin_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
+import 'package:taxi_fleet_frontend_app/providers/shared_prefs.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => LocationProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => LocationProvider()),
+        Provider<SharedPrefs>(create: (context) => SharedPrefs()),
+      ],
       child: const MyApp(),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key});
 
   // This widget is the root of your application.
   @override
