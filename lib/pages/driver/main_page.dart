@@ -23,40 +23,56 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   late List<LatLng> _polylineCoordinates;
   late final MapController _mapController;
   late LatLng _userLocation;
   late Marker _marker;
   late bool _firstLocationUpdate;
   late StompClientConfig _stompClientConfig;
-  late StompClient _stompClient;
+  late StompClient _locationStompClient;
+  late StompClient _tripStompClient;
   late bool _isMenuExpanded;
   late List<MapMarker> _mapMarkers;
+  final pageController = PageController(viewportFraction: 0.8);
+  int selectedIndex = 0;
 
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    /*_stompClientConfig = StompClientConfig(
+    _stompClientConfig = StompClientConfig(
       port: 8888,
       serviceName: 'MSTXFLEET-LOCATION', // Replace with your microservice's port
       onConnect: onConnect,
     );
-    _stompClient = _stompClientConfig.connect();*/
+    _locationStompClient = _stompClientConfig.connect();
     _stompClientConfig = StompClientConfig(
       port: 8888,
       serviceName: 'MSTXFLEET-TRIP', // Replace with your microservice's port
       onConnect: onConnect,
+      userId: Provider.of<SharedPrefs>(context, listen: false).userId,
     );
-    _stompClient = _stompClientConfig.connect();
+    _tripStompClient = _stompClientConfig.connect();
     _mapMarkers = [];
     _isMenuExpanded = false;
     _firstLocationUpdate = true;
     _mapController = MapController();
     _userLocation = const LatLng(0, 0);
     _marker = _buildMarker(_userLocation);
+
+    _mapMarkers = [
+      MapMarker(
+          userId: "Client 1",
+          location: const LatLng(33.707173, -7.362968),
+          ),
+      MapMarker(
+          userId: "Client 2",
+          location: const LatLng(33.705118, -7.357584),
+          ),
+    ];
+
     _getCurrentLocation();
 
     //stomp client
@@ -77,13 +93,11 @@ class _MainPageState extends State<MainPage> {
 
   void sendLocation(userLocation) {
     // Send location to the microservice
-    _stompClient.send(
+    _locationStompClient.send(
       destination: '/location', // Replace with your microservice's location endpoint
       body: jsonEncode(
         {
-          'location': "POINT(${userLocation.longitude} ${userLocation.latitude})", // Replace with your microservice's location endpoint
           'userId': Provider.of<SharedPrefs>(context, listen: false).userId,
-          'uderType': Provider.of<SharedPrefs>(context, listen: false).role,
         }
         ),
     );
@@ -91,8 +105,9 @@ class _MainPageState extends State<MainPage> {
 
   void onConnect(StompFrame frame) {
     print('Connected to the trip service');
-    _stompClient.subscribe(
-      destination: '/topic/nearbyUsers',
+
+    _tripStompClient.subscribe(
+      destination: '/topic/trip.nearbyUsers/${Provider.of<SharedPrefs>(context, listen: false).userId}',
       callback: (StompFrame frame) {
         //update isLoading to false
         /*setState(() {
@@ -104,8 +119,7 @@ class _MainPageState extends State<MainPage> {
         
         final Map<String, dynamic> data = jsonDecode(frame.body!);
         List<dynamic> nearbyUsers = json.decode(json.decode(data['nearbyUsers'])) as List<dynamic>;
-       // print(nearbyUsers);
-        /*final List<dynamic> nearbyUsers = jsonDecode(data['nearbyUsers']);*/
+
         // format the data is a List of object {userId,location is a string "POINT(lat lng)"}
         List<MapMarker> mapMarkers = [];
         for (final user in nearbyUsers) {
@@ -131,11 +145,45 @@ class _MainPageState extends State<MainPage> {
         //print('Received a message from the trip service: $nearbyUsers');
       },
     );
-    _stompClient.send(
-      destination: '/nearbyUsers',
-      body: "1"
+
+    _tripStompClient.subscribe(
+      destination: '/topic/trip.path/${Provider.of<SharedPrefs>(context, listen: false).userId}',
+      callback: (StompFrame frame) {
+        //update isLoading to false
+        /*setState(() {
+          _isLoading = false;
+        });*/
+
+        //get a list of LatLng coordinates from the message body
+        print('Received a message from the trip service: ${frame.body}');
+        
+        final Map<String, dynamic> data = jsonDecode(frame.body!);
+        final String coordinates = data['path'];
+        print('Received a message from the trip service: $coordinates');
+        //decodeWkt(coordinates);
+      },
+    );
+
+    _tripStompClient.send(
+      destination: '/trip.nearbyUsers',
+    );
+
+  }
+
+  // accept a trip request
+  void acceptTripRequest(String passengerId) {
+    // Send location to the microservice
+    _tripStompClient.send(
+      destination: '/trip.accept',
+      body: jsonEncode(
+        {
+          'passengerId': passengerId,
+        }
+        ),
     );
   }
+
+  
 
   Future<void> _getCurrentLocation() async {
     try {
@@ -188,16 +236,14 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  //final mapMarkers = [];
-  /*MapMarker(
+  /*final mapMarkers = [
+  MapMarker(
       userId: "Client 1",
       location: const LatLng(33.707173, -7.362968),
-      rating: 3,
       ),
   MapMarker(
       userId: "Client 2",
       location: const LatLng(33.705118, -7.357584),
-      rating: 4,
       ),
 ];*/
 
@@ -226,15 +272,37 @@ class _MainPageState extends State<MainPage> {
                 markers: [
                   _marker,
                   //iterate through the mapMarkers list and add them to the map
-                  for (final marker in _mapMarkers)
+                  for (int i = 0; i < _mapMarkers.length; i++)
                     Marker(
-                      point: marker.location,
+                      point: _mapMarkers[i].location,
                       width: 40.0,
                       height: 40.0,
-                      child: Image.asset(
-                              AppIcons.icClient,
-                              fit: BoxFit.cover,
-                            ), 
+                      child:
+                         GestureDetector(
+                          onTap: () {
+                            pageController.animateToPage(
+                              i,
+                              duration: const Duration(milliseconds: 500),
+                              curve: Curves.easeInOut,
+                            );
+                            setState(() {
+                              selectedIndex = i;
+                            });
+                          },
+                          child: AnimatedScale(
+                            duration: const Duration(milliseconds: 500),
+                            scale: selectedIndex == i ? 1 : 0.8,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 500),
+                              opacity: selectedIndex == i ? 1 : 0.5,
+                              child: Image.asset(
+                                  AppIcons.icClient,
+                                  fit: BoxFit.cover,
+                                ), 
+                        ),
+                      ),
+                    ),
+                      
                     )
                 ],
               ),
@@ -256,7 +324,7 @@ class _MainPageState extends State<MainPage> {
                     child: Column(
                       children: [
                         AnimatedContainer(
-                          duration: Duration(milliseconds: 300),
+                          duration: const Duration(milliseconds: 300),
                           height: _isMenuExpanded ? 290.0 : 0.0,
                           child: SingleChildScrollView(
                               child: Column(
@@ -270,9 +338,9 @@ class _MainPageState extends State<MainPage> {
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.add),
+                                  child: const Icon(Icons.add),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                                 FloatingActionButton(
                                   heroTag: "zoomOut",
                                   onPressed: () {
@@ -282,28 +350,28 @@ class _MainPageState extends State<MainPage> {
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.remove),
+                                  child: const Icon(Icons.remove),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                                 FloatingActionButton(
                                   heroTag: "gps",
                                   onPressed: () {
-                                    _mapController.move(
+                                    _animatedMapMove(
                                       _userLocation,
                                       _mapController.zoom,
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.gps_fixed),
+                                  child: const Icon(Icons.gps_fixed),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                                 FloatingActionButton(
                                   heroTag: "settings",
                                   onPressed: () {},
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.settings),
+                                  child: const Icon(Icons.settings),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                               ],
                             ),
                           ),
@@ -324,55 +392,73 @@ class _MainPageState extends State<MainPage> {
                   ),
                   // positioned card for client info at the top of the screen with an action button
                   Positioned(
-                    top: 16.0,
-                    left: 16.0,
-                    right: 16.0,
-                    child: AnimatedContainer(
-                      duration: Duration(milliseconds: 300),
-                      height: 290.0,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(16.0),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16.0),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 8.0,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 50.0,
-                                        height: 50.0,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(8.0),
+                    top: 16,
+                    left: 0,
+                    right: 0,
+                    height: MediaQuery.of(context).size.height * 0.235,
+                    child: PageView.builder(
+                      controller: pageController,
+                      onPageChanged: (value) {
+                        var currentLocation =
+                            _mapMarkers[value].location;
+                        _animatedMapMove(currentLocation, _mapController.zoom);
+                        setState(() {
+                          selectedIndex = value;
+                        });
+                      },
+                      itemCount: _mapMarkers.length,
+                      itemBuilder: (_, index) {
+                        final item = _mapMarkers[index];
+                        return Padding(
+                        padding: const EdgeInsets.all(15.0),
+                        //height: 290.0,
+                        child: Card(
+                          elevation: 5.0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(16.0),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16.0),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 8.0,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 50.0,
+                                          height: 50.0,
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8.0),
+                                          ),
+                                          child: const Icon(Icons.person),
                                         ),
-                                        child: const Icon(Icons.person),
-                                      ),
-                                      const SizedBox(width: 16.0),
-                                      const Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              "Client 1",
-                                              style: TextStyle(
-                                                fontSize: 16.0,
-                                                fontWeight: FontWeight.bold,
+                                        const SizedBox(width: 16.0),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                item.userId,
+                                                style: const TextStyle(
+                                                  fontSize: 16.0,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
-                                            ),
-                                            SizedBox(height: 4.0),
-                                            Row(
+                                              const SizedBox(height: 4.0),
+                                            const Row(
                                               children: [
                                                 Icon(
                                                   Icons.star,
@@ -401,53 +487,96 @@ class _MainPageState extends State<MainPage> {
                                                 ),
                                               ],
                                             ),
-                                          ],
-                                        ),
-                                      ),
-                                      const Text(
-                                        "0.5 km",
-                                        style: TextStyle(
-                                          fontSize: 15.0,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16.0),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: ElevatedButton(
-                                          onPressed: () {},
-                                          style: ElevatedButton.styleFrom(
-                                            primary: AppColors.primaryColor,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(8.0),
-                                            ),
+                                            ],
                                           ),
-                                          child: const Text(
-                                            "Suggest",
-                                            style: TextStyle(
-                                              fontSize: 16.0,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.textColor,
-                                            ),
-                                            ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                        const Text(
+                                          "0.5 km",
+                                          style: TextStyle(
+                                            fontSize: 15.0,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16.0),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              acceptTripRequest(item.userId);
+                                            },
+                                            // 5 rating stars
+                                            style: ElevatedButton.styleFrom(
+                                              primary: AppColors.primaryColor,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8.0),
+                                              ),
+                                            ),
+                                            child: const Text(
+                                              "Accept",
+                                              style: TextStyle(
+                                                fontSize: 16.0,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.textColor,
+                                              ),
+                                              ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                      ),
+                            ],
+                          ),
+                        ),
+                        );
+                      },
                     ),
                   ),
-                ),
-                                      
+                    
         ],
       ),
     );
   }
+
+
+  void _animatedMapMove(LatLng destLocation, double destZoom) {
+    // Create some tweens. These serve to split up the transition from one location to another.
+    // In our case, we want to split the transition be<tween> our current map center and the destination.
+    final latTween = Tween<double>(
+        begin: _mapController.center.latitude, end: destLocation.latitude);
+    final lngTween = Tween<double>(
+        begin: _mapController.center.longitude, end: destLocation.longitude);
+    final zoomTween = Tween<double>(begin: _mapController.zoom, end: destZoom);
+
+    // Create a animation controller that has a duration and a TickerProvider.
+    var controller = AnimationController(
+        duration: const Duration(milliseconds: 1000), vsync: this);
+    // The animation determines what path the animation will take. You can try different Curves values, although I found
+    // fastOutSlowIn to be my favorite.
+    Animation<double> animation =
+        CurvedAnimation(parent: controller, curve: Curves.fastOutSlowIn);
+
+    controller.addListener(() {
+      _mapController.move(
+        LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
+        zoomTween.evaluate(animation),
+      );
+    });
+
+    animation.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        controller.dispose();
+      } else if (status == AnimationStatus.dismissed) {
+        controller.dispose();
+      }
+    });
+
+    controller.forward();
+  }
+
+
 }

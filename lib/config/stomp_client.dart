@@ -7,9 +7,11 @@ class StompClientConfig {
     required this.port,
     required this.serviceName,
     required this.onConnect,
+    this.userId,
   });
 
   final int port;
+  final String? userId;
   final String serviceName;
   final void Function(StompFrame frame) onConnect;
 
@@ -20,6 +22,7 @@ class StompClientConfig {
       url: 'ws://192.168.56.1:$port/$serviceName/ws', // Replace with your microservice's WebSocket endpoint
       onConnect: onConnect, // Callback function for connection established
       onWebSocketError: (dynamic error) => print('$port ==> Error: $error'),
+      stompConnectHeaders: userId != null ? {'userId': userId as String} : {},
     );
     client = StompClient(config: config);
     client.activate();

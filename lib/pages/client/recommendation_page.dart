@@ -9,6 +9,7 @@ import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
+import 'package:taxi_fleet_frontend_app/providers/shared_prefs.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 import 'main_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
@@ -23,7 +24,7 @@ class RecommendationPage extends StatefulWidget {
   _RecommendationPageState createState() => _RecommendationPageState();
 }
 
-class _RecommendationPageState extends State<RecommendationPage> {
+class _RecommendationPageState extends State<RecommendationPage> with SingleTickerProviderStateMixin {
   late final MapController _mapController;
   late StompClientConfig _stompClientConfig;
   late StompClient _stompClient;
@@ -37,12 +38,13 @@ class _RecommendationPageState extends State<RecommendationPage> {
   @override
   void initState() {
     super.initState();
-    /*_stompClientConfig = StompClientConfig(
+    _stompClientConfig = StompClientConfig(
       port: 8888,
       serviceName: 'MSTXFLEET-TRIP', // Replace with your microservice's port
       onConnect: onConnect,
+      userId: Provider.of<SharedPrefs>(context, listen: false).userId,
     );
-    _stompClient = _stompClientConfig.connect();*/
+    _stompClient = _stompClientConfig.connect();
     // Listen to changes in the user location
     _isMenuExpanded = false;
     _isLoading = false;
@@ -90,8 +92,9 @@ class _RecommendationPageState extends State<RecommendationPage> {
   //send destination to the trip service when _stompClient is connected
   void onConnect(StompFrame frame) {
     print('Connected to the trip service');
+
     _stompClient.subscribe(
-      destination: '/topic/route',
+      destination: '/topic/trip.path/${Provider.of<SharedPrefs>(context, listen: false).userId}',
       callback: (StompFrame frame) {
         //update isLoading to false
         setState(() {
@@ -106,8 +109,9 @@ class _RecommendationPageState extends State<RecommendationPage> {
         decodeWkt(coordinates);
       },
     );
+
     _stompClient.send(
-      destination: '/route',
+      destination: '/trip.initialize',
       body: jsonEncode(
         {
           'startLongitude' : _userLocation.longitude,
@@ -117,6 +121,7 @@ class _RecommendationPageState extends State<RecommendationPage> {
         },
       ),
     );
+
   }
 
   void _toggleMenu() {
@@ -128,12 +133,12 @@ class _RecommendationPageState extends State<RecommendationPage> {
   Marker _buildMarker(LatLng position) {
     // Example of a different marker icon (you can replace this with your custom icon)
     return Marker(
-      width: 80.0,
-      height: 80.0,
+      width: 35.0,
+      height: 35.0,
       point: position,
       child: const Icon(
-            Icons.location_on_rounded,
-            size: 50.0,
+            Icons.circle_rounded,
+            size: 35.0,
             color: Colors.blue,
       ),
     );
@@ -202,7 +207,7 @@ class _RecommendationPageState extends State<RecommendationPage> {
                     child: Column(
                       children: [
                         AnimatedContainer(
-                          duration: Duration(milliseconds: 300),
+                          duration: const Duration(milliseconds: 300),
                           height: _isMenuExpanded ? 220.0 : 0.0,
                           child: SingleChildScrollView(
                               child: Column(
@@ -216,9 +221,9 @@ class _RecommendationPageState extends State<RecommendationPage> {
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.add),
+                                  child: const Icon(Icons.add),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                                 FloatingActionButton(
                                   heroTag: "zoomOut",
                                   onPressed: () {
@@ -228,21 +233,21 @@ class _RecommendationPageState extends State<RecommendationPage> {
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.remove),
+                                  child: const Icon(Icons.remove),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                                 FloatingActionButton(
                                   heroTag: "gps",
                                   onPressed: () {
-                                    _mapController.move(
+                                    _animatedMapMove(
                                       _userLocation,
                                       _mapController.zoom,
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.gps_fixed),
+                                  child: const Icon(Icons.gps_fixed),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                               ],
                             ),
                           ),
@@ -286,4 +291,40 @@ class _RecommendationPageState extends State<RecommendationPage> {
       ),
     );
   }
+
+  void _animatedMapMove(LatLng destLocation, double destZoom) {
+    // Create some tweens. These serve to split up the transition from one location to another.
+    // In our case, we want to split the transition be<tween> our current map center and the destination.
+    final latTween = Tween<double>(
+        begin: _mapController.center.latitude, end: destLocation.latitude);
+    final lngTween = Tween<double>(
+        begin: _mapController.center.longitude, end: destLocation.longitude);
+    final zoomTween = Tween<double>(begin: _mapController.zoom, end: destZoom);
+
+    // Create a animation controller that has a duration and a TickerProvider.
+    var controller = AnimationController(
+        duration: const Duration(milliseconds: 1000), vsync: this);
+    // The animation determines what path the animation will take. You can try different Curves values, although I found
+    // fastOutSlowIn to be my favorite.
+    Animation<double> animation =
+        CurvedAnimation(parent: controller, curve: Curves.fastOutSlowIn);
+
+    controller.addListener(() {
+      _mapController.move(
+        LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
+        zoomTween.evaluate(animation),
+      );
+    });
+
+    animation.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        controller.dispose();
+      } else if (status == AnimationStatus.dismissed) {
+        controller.dispose();
+      }
+    });
+
+    controller.forward();
+  }
+
 }

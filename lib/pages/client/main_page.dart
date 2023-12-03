@@ -22,7 +22,7 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   late final MapController _mapController;
   late LatLng _userLocation;
   late Marker _marker;
@@ -116,12 +116,12 @@ class _MainPageState extends State<MainPage> {
   Marker _buildMarker(LatLng position) {
     // Example of a different marker icon (you can replace this with your custom icon)
     return Marker(
-      width: 80.0,
-      height: 80.0,
+      width: 35.0,
+      height: 35.0,
       point: position,
       child: const Icon(
-            Icons.location_on_rounded,
-            size: 50.0,
+            Icons.circle_rounded,
+            size: 35.0,
             color: Colors.blue,
       ),
     );
@@ -228,7 +228,7 @@ class _MainPageState extends State<MainPage> {
                                 FloatingActionButton(
                                   heroTag: "gps",
                                   onPressed: () {
-                                    _mapController.move(
+                                    _animatedMapMove(
                                       _userLocation,
                                       _mapController.zoom,
                                     );
@@ -266,4 +266,40 @@ class _MainPageState extends State<MainPage> {
       ),
     );
   }
+
+  void _animatedMapMove(LatLng destLocation, double destZoom) {
+    // Create some tweens. These serve to split up the transition from one location to another.
+    // In our case, we want to split the transition be<tween> our current map center and the destination.
+    final latTween = Tween<double>(
+        begin: _mapController.center.latitude, end: destLocation.latitude);
+    final lngTween = Tween<double>(
+        begin: _mapController.center.longitude, end: destLocation.longitude);
+    final zoomTween = Tween<double>(begin: _mapController.zoom, end: destZoom);
+
+    // Create a animation controller that has a duration and a TickerProvider.
+    var controller = AnimationController(
+        duration: const Duration(milliseconds: 1000), vsync: this);
+    // The animation determines what path the animation will take. You can try different Curves values, although I found
+    // fastOutSlowIn to be my favorite.
+    Animation<double> animation =
+        CurvedAnimation(parent: controller, curve: Curves.fastOutSlowIn);
+
+    controller.addListener(() {
+      _mapController.move(
+        LatLng(latTween.evaluate(animation), lngTween.evaluate(animation)),
+        zoomTween.evaluate(animation),
+      );
+    });
+
+    animation.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        controller.dispose();
+      } else if (status == AnimationStatus.dismissed) {
+        controller.dispose();
+      }
+    });
+
+    controller.forward();
+  }
+
 }

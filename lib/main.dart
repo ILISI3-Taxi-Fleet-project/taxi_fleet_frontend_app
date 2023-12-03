@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const SigninPage(),
+      home: const driverHomePage.MainPage(),
       routes:{
         '/passengerHome': (context) => const clientHomePage.MainPage(),
         '/driverHome': (context) => const driverHomePage.MainPage(),
