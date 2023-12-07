@@ -36,12 +36,14 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    /*_stompClientConfig = StompClientConfig(
+
+    _stompClientConfig = StompClientConfig(
       port: 8888,
       serviceName: 'MSTXFLEET-LOCATION', // Replace with your microservice's port
       onConnect: onConnect,
     );
-    _stompClient = _stompClientConfig.connect();*/
+    _stompClient = _stompClientConfig.connect();
+
     _firstLocationUpdate = true;
     _mapController = MapController();
     _userLocation = const LatLng(0, 0);
@@ -54,14 +56,14 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     _timer = Timer.periodic(Duration(seconds: 10), (timer) {
       _getCurrentLocation();
       print("**********> $_userLocation");
-      //sendLocation(_userLocation);
+      sendLocation(_userLocation);
     });
   }
 
   @override
   void dispose() {
     _timer?.cancel(); // Dispose the timer when the widget is disposed
-    //_stompClient.deactivate();
+    _stompClient.deactivate();
     super.dispose();
   }
 
