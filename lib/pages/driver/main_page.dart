@@ -101,7 +101,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       destination: '/location', // Replace with your microservice's location endpoint
       body: jsonEncode(
         {
+          'location': "POINT(${userLocation.longitude} ${userLocation.latitude})", // Replace with your microservice's location endpoint
           'userId': Provider.of<SharedPrefs>(context, listen: false).userId,
+          'userType': Provider.of<SharedPrefs>(context, listen: false).role,
         }
         ),
     );
