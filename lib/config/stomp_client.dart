@@ -19,7 +19,7 @@ class StompClientConfig {
 
   StompClient connect() {
     final config = StompConfig(
-      url: 'ws://192.168.56.1:$port/$serviceName/ws', // Replace with your microservice's WebSocket endpoint
+      url: 'ws://172.17.36.37:$port/$serviceName/ws', // Replace with your microservice's WebSocket endpoint
       onConnect: onConnect, // Callback function for connection established
       onWebSocketError: (dynamic error) => print('$port ==> Error: $error'),
       stompConnectHeaders: userId != null ? {'userId': userId as String} : {},

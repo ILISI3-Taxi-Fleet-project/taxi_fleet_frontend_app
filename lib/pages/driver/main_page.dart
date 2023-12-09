@@ -24,7 +24,6 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
-  late List<LatLng> _polylineCoordinates;
   late final MapController _mapController;
   late LatLng _userLocation;
   late Marker _marker;
@@ -171,7 +170,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     );
 
     _tripStompClient.send(
-      destination: '/trip.nearbyUsers',
+      destination: '/app/trip.nearbyUsers',
     );
 
   }
@@ -180,7 +179,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   void acceptTripRequest(String passengerId) {
     // Send location to the microservice
     _tripStompClient.send(
-      destination: '/trip.accept',
+      destination: '/app/trip.accept',
       body: jsonEncode(
         {
           'passengerId': passengerId,

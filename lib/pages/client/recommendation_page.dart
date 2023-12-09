@@ -28,7 +28,6 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
   late final MapController _mapController;
   late StompClientConfig _stompClientConfig;
   late StompClient _stompClient;
-  late List<LatLng> _polylineCoordinates;
   late LatLng _userLocation;
   late Marker _marker;
   late List<Polyline> _polylines;
@@ -47,7 +46,7 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
     _stompClient = _stompClientConfig.connect();
     // Listen to changes in the user location
     _isMenuExpanded = false;
-    _isLoading = false;
+    _isLoading = true;
 
     Provider.of<LocationProvider>(context, listen: false).addListener(() {
       _updateUserLocation();
@@ -56,7 +55,6 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
     // Initial update
     _updateUserLocation();
     _mapController = MapController();
-    _polylineCoordinates = <LatLng>[];
     _polylines = <Polyline>[];
 
   }
@@ -111,7 +109,7 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
     );
 
     _stompClient.send(
-      destination: '/trip.initialize',
+      destination: '/app/trip.initialize',
       body: jsonEncode(
         {
           'startLongitude' : _userLocation.longitude,
