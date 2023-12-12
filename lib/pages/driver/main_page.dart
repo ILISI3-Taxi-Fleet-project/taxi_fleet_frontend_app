@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geobase/geobase.dart' as gb;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +13,7 @@ import 'package:taxi_fleet_frontend_app/components/client_marker.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
 import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
+import 'package:taxi_fleet_frontend_app/pages/driver/trip_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/shared_prefs.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
@@ -26,12 +28,14 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   late final MapController _mapController;
   late LatLng _userLocation;
-  late Marker _marker;
+  late Marker _driverMarker;
+  late List<Polyline> _polylines;
   late bool _firstLocationUpdate;
   late StompClientConfig _stompClientConfig;
   late StompClient _locationStompClient;
   late StompClient _tripStompClient;
   late bool _isMenuExpanded;
+  late bool _isLoading;
   late List<MapMarker> _mapMarkers;
   final pageController = PageController(viewportFraction: 0.8);
   int selectedIndex = 0;
@@ -46,6 +50,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       port: 8888,
       serviceName: 'MSTXFLEET-LOCATION', // Replace with your microservice's port
       onConnect: onConnect,
+      userId: Provider.of<SharedPrefs>(context, listen: false).userId,
     );
     _locationStompClient = _stompClientConfig.connect();
 
@@ -57,23 +62,14 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     );
     _tripStompClient = _stompClientConfig.connect();
 
+    _isLoading = false;
     _mapMarkers = [];
+    _polylines = [];
     _isMenuExpanded = false;
     _firstLocationUpdate = true;
     _mapController = MapController();
     _userLocation = const LatLng(0, 0);
-    _marker = _buildMarker(_userLocation);
-
-    _mapMarkers = [
-      MapMarker(
-          userId: "Client 1",
-          location: const LatLng(33.707173, -7.362968),
-          ),
-      MapMarker(
-          userId: "Client 2",
-          location: const LatLng(33.705118, -7.357584),
-          ),
-    ];
+    _driverMarker = _buildDriverMarker(_userLocation);
 
     _getCurrentLocation();
 
@@ -106,6 +102,27 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
         }
         ),
     );
+  }
+
+  void decodeWkt(String multiLineString) {
+      final List<Polyline> polylines = <Polyline>[];
+      final geometry = gb.MultiLineString.parse(multiLineString, format: gb.WKT.geometry);
+      final Iterable<gb.LineString> lines = geometry.lineStrings;
+      for (final line in lines) {
+        // iterate over the points in the line by 2 points
+        final List<LatLng> points = [];
+        for (var i = 0; i < line.chain.values.length; i += 2) {
+          points.add(LatLng(line.chain.values.elementAt(i + 1), line.chain.values.elementAt(i)));
+        }
+        polylines.add(Polyline(
+            points: points,
+            strokeWidth: 4.0,
+            color: Colors.blue,
+        ));
+      }
+      setState(() {
+        _polylines = polylines;
+      });
   }
 
   void onConnect(StompFrame frame) {
@@ -166,6 +183,14 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
         final String coordinates = data['path'];
         print('Received a message from the trip service: $coordinates');
         //decodeWkt(coordinates);
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        // navigate to the trip page without using pushnamed
+        Navigator.of(context).push(MaterialPageRoute(builder: (context) => TripPage(path: coordinates)));
+
       },
     );
 
@@ -178,6 +203,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   // accept a trip request
   void acceptTripRequest(String passengerId) {
     // Send location to the microservice
+    setState(() {
+      _isLoading = true;
+    });
     _tripStompClient.send(
       destination: '/app/trip.accept',
       body: jsonEncode(
@@ -199,6 +227,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
           return;
         }
       }
+      
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
@@ -208,7 +237,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       setState(() {
         _userLocation = LatLng(position.latitude, position.longitude);
         Provider.of<LocationProvider>(context, listen: false).updateUserLocation(_userLocation);
-        _marker = _buildMarker(_userLocation);
+        _driverMarker = _buildDriverMarker(_userLocation);
         if (_firstLocationUpdate) {
           // Move the map to the user's location only for the first time
           _mapController.move(_userLocation, _mapController.zoom);
@@ -226,7 +255,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
             });
           }
 
-  Marker _buildMarker(LatLng position) {
+  Marker _buildDriverMarker(LatLng position) {
     // Example of a different marker icon (you can replace this with your custom icon)
     return Marker(
       width: 80.0,
@@ -240,17 +269,6 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
       ),
     );
   }
-
-  /*final mapMarkers = [
-  MapMarker(
-      userId: "Client 1",
-      location: const LatLng(33.707173, -7.362968),
-      ),
-  MapMarker(
-      userId: "Client 2",
-      location: const LatLng(33.705118, -7.357584),
-      ),
-];*/
 
   @override
   Widget build(BuildContext context) {
@@ -275,7 +293,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
               ),
               MarkerLayer(
                 markers: [
-                  _marker,
+                  _driverMarker,
                   //iterate through the mapMarkers list and add them to the map
                   for (int i = 0; i < _mapMarkers.length; i++)
                     Marker(
@@ -310,6 +328,9 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       
                     )
                 ],
+              ),
+              PolylineLayer(
+                polylines: _polylines,
               ),
             ],
           ),
@@ -456,7 +477,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                item.userId,
+                                                "Client ${index + 1}",
                                                 style: const TextStyle(
                                                   fontSize: 16.0,
                                                   fontWeight: FontWeight.bold,
@@ -541,6 +562,24 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       },
                     ),
                   ),
+                  _isLoading ? Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
+                      color: Colors.grey.withOpacity(0.5),
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Initializing trip...',
+                              style: TextStyle(fontSize: 18),
+                            ),
+                            SizedBox(height: 10),
+                            CircularProgressIndicator(),
+                          ],
+                        ),
+                      ),
+                    ) : Container(),
                     
         ],
       ),

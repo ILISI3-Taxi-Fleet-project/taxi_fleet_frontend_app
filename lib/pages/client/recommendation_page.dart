@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
+import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
 import 'package:taxi_fleet_frontend_app/providers/shared_prefs.dart';
 import 'package:taxi_fleet_frontend_app/styles/colors.dart';
@@ -29,7 +30,9 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
   late StompClientConfig _stompClientConfig;
   late StompClient _stompClient;
   late LatLng _userLocation;
-  late Marker _marker;
+  late LatLng _driverLocation;
+  late Marker _userMarker;
+  late Marker _driverMarker;
   late List<Polyline> _polylines;
   late bool _isMenuExpanded;
   late bool _isLoading;
@@ -47,10 +50,14 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
     // Listen to changes in the user location
     _isMenuExpanded = false;
     _isLoading = true;
+    
 
     Provider.of<LocationProvider>(context, listen: false).addListener(() {
       _updateUserLocation();
     });
+
+    _driverLocation = const LatLng(0, 0);
+    _driverMarker = _buildDriverMarker(_driverLocation);
 
     // Initial update
     _updateUserLocation();
@@ -62,7 +69,7 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
   void _updateUserLocation() {
     setState(() {
       _userLocation = Provider.of<LocationProvider>(context, listen: false).userLocation;
-      _marker = _buildMarker(_userLocation);
+      _userMarker = _buildUserMarker(_userLocation);
     });
   }
 
@@ -108,6 +115,27 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
       },
     );
 
+    _stompClient.subscribe(
+      destination: '/topic/location.getDriverLocation/${Provider.of<SharedPrefs>(context, listen: false).userId}',
+      callback: (StompFrame frame) {
+
+        //get a list of LatLng coordinates from the message body
+        print('Received a message from the trip service: ${frame.body}');
+        
+        final Map<String, dynamic> data = jsonDecode(frame.body!);
+        final String location = data['driverLocation']['location'];
+        final List<String> latLng = location.substring(6, location.length - 1).split(' ');
+        final double latitude = double.parse(latLng[1]);
+        final double longitude = double.parse(latLng[0]);
+        final LatLng driverLocation = LatLng(latitude, longitude);
+
+        setState(() {
+          _driverLocation = driverLocation;
+          _driverMarker = _buildDriverMarker(_driverLocation);
+        });
+      },
+    );
+
     _stompClient.send(
       destination: '/app/trip.initialize',
       body: jsonEncode(
@@ -120,6 +148,13 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
       ),
     );
 
+    // get deiver location every 10 seconds
+    Future.delayed(const Duration(seconds: 10), () {
+      _stompClient.send(
+        destination: '/app/location.getDriverLocation',
+      );
+    });
+
   }
 
   void _toggleMenu() {
@@ -128,7 +163,7 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
             });
           }
 
-  Marker _buildMarker(LatLng position) {
+  Marker _buildUserMarker(LatLng position) {
     // Example of a different marker icon (you can replace this with your custom icon)
     return Marker(
       width: 35.0,
@@ -138,6 +173,21 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
             Icons.circle_rounded,
             size: 35.0,
             color: Colors.blue,
+      ),
+    );
+  }
+
+  Marker _buildDriverMarker(LatLng position) {
+    // Example of a different marker icon (you can replace this with your custom icon)
+    return Marker(
+      width: 80.0,
+      height: 80.0,
+      point: position,
+      child: //taxi icon
+      Image.asset(
+        AppIcons.icTaxi,
+        //reduces the image size
+        scale: 0.8,
       ),
     );
   }
@@ -173,7 +223,8 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
           ),
           MarkerLayer(
             markers: [
-              _marker,
+              _userMarker,
+              _driverMarker,
             ],
           ),
           PolylineLayer(

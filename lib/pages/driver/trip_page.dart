@@ -3,33 +3,43 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geobase/geobase.dart' as gb;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
+import 'package:taxi_fleet_frontend_app/components/client_marker.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
+import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
+import 'package:taxi_fleet_frontend_app/pages/driver/main_page.dart' as driverHomePage;
 import 'package:taxi_fleet_frontend_app/providers/shared_prefs.dart';
-import 'package:taxi_fleet_frontend_app/styles/colors.dart';
-import 'destination_page.dart';
 import 'package:taxi_fleet_frontend_app/providers/location_provider.dart';
+import 'package:taxi_fleet_frontend_app/styles/colors.dart';
 
-class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+class TripPage extends StatefulWidget {
+
+  final String path;
+
+  const TripPage({super.key, required this.path});
 
   @override
-  State<MainPage> createState() => _MainPageState();
+  State<TripPage> createState() => _TripPageState();
 }
 
-class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
+class _TripPageState extends State<TripPage> with TickerProviderStateMixin {
   late final MapController _mapController;
   late LatLng _userLocation;
   late Marker _marker;
+  late List<Polyline> _polylines;
   late bool _firstLocationUpdate;
   late StompClientConfig _stompClientConfig;
-  late StompClient _stompClient;
+  late StompClient _locationStompClient;
+  late StompClient _tripStompClient;
   late bool _isMenuExpanded;
+  final pageController = PageController(viewportFraction: 0.8);
+  int selectedIndex = 0;
 
   Timer? _timer;
 
@@ -37,54 +47,115 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    _stompClientConfig = StompClientConfig(
+    /*_stompClientConfig = StompClientConfig(
       port: 8888,
       serviceName: 'MSTXFLEET-LOCATION', // Replace with your microservice's port
       onConnect: onConnect,
       userId: Provider.of<SharedPrefs>(context, listen: false).userId,
     );
-    _stompClient = _stompClientConfig.connect();
+    _locationStompClient = _stompClientConfig.connect();
 
+    _stompClientConfig = StompClientConfig(
+      port: 8888,
+      serviceName: 'MSTXFLEET-TRIP', // Replace with your microservice's port
+      onConnect: onConnect,
+      userId: Provider.of<SharedPrefs>(context, listen: false).userId,
+    );
+    _tripStompClient = _stompClientConfig.connect();*/
+
+    _polylines = [];
+    _isMenuExpanded = false;
     _firstLocationUpdate = true;
     _mapController = MapController();
     _userLocation = const LatLng(0, 0);
     _marker = _buildMarker(_userLocation);
-    _getCurrentLocation();
-    _isMenuExpanded = false;
 
-    //stomp client
+    decodeWkt(widget.path);
 
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
-      _getCurrentLocation();
-      print("**********> $_userLocation");
-      sendLocation(_userLocation);
-    });
+    _updateUserLocation();
+
+    _timer = Timer.periodic(const Duration(seconds: 10), (Timer t) => _updateUserLocation());
+
   }
 
   @override
   void dispose() {
     _timer?.cancel(); // Dispose the timer when the widget is disposed
-    _stompClient.deactivate();
+    _locationStompClient.deactivate();
+    _tripStompClient.deactivate();
     super.dispose();
   }
 
-  void sendLocation(userLocation) {
+  void _updateUserLocation() {
+    print('getting user location');
+    setState(() {
+      _userLocation = Provider.of<LocationProvider>(context, listen: false).userLocation;
+      _marker = _buildMarker(_userLocation);
+    });
+  }
+
+  void decodeWkt(String multiLineString) {
+      final List<Polyline> polylines = <Polyline>[];
+      final geometry = gb.MultiLineString.parse(multiLineString, format: gb.WKT.geometry);
+      final Iterable<gb.LineString> lines = geometry.lineStrings;
+      for (final line in lines) {
+        // iterate over the points in the line by 2 points
+        final List<LatLng> points = [];
+        for (var i = 0; i < line.chain.values.length; i += 2) {
+          points.add(LatLng(line.chain.values.elementAt(i + 1), line.chain.values.elementAt(i)));
+        }
+        polylines.add(Polyline(
+            points: points,
+            strokeWidth: 4.0,
+            color: Colors.blue,
+        ));
+      }
+      setState(() {
+        _polylines = polylines;
+      });
+  }
+
+  /*void onConnect(StompFrame frame) {
+    print('Connected to the trip service');
+
+    _tripStompClient.subscribe(
+      destination: '/topic/trip.path/${Provider.of<SharedPrefs>(context, listen: false).userId}',
+      callback: (StompFrame frame) {
+        //update isLoading to false
+        /*setState(() {
+          _isLoading = false;
+        });*/
+
+        //get a list of LatLng coordinates from the message body
+        print('Received a message from the trip service: ${frame.body}');
+        
+        final Map<String, dynamic> data = jsonDecode(frame.body!);
+        final String coordinates = data['path'];
+        print('Received a message from the trip service: $coordinates');
+        decodeWkt(coordinates);
+      },
+    );
+
+    /*_tripStompClient.send(
+      destination: '/app/trip.nearbyUsers',
+    );*/
+
+  }*/
+
+  // accept a trip request
+  void acceptTripRequest(String passengerId) {
     // Send location to the microservice
-    _stompClient.send(
-      destination: '/location', // Replace with your microservice's location endpoint
+    _tripStompClient.send(
+      destination: '/app/trip.accept',
       body: jsonEncode(
         {
-          'location': "POINT(${userLocation.longitude} ${userLocation.latitude})", // Replace with your microservice's location endpoint
-          'userId': Provider.of<SharedPrefs>(context, listen: false).userId,
-          'userType': Provider.of<SharedPrefs>(context, listen: false).role,
+          'passengerId': passengerId,
         }
         ),
     );
   }
 
-  void onConnect(StompFrame frame) {
-    print('Connected to the location service');
-  }
+  
 
   Future<void> _getCurrentLocation() async {
     try {
@@ -95,6 +166,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
           return;
         }
       }
+      
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
@@ -116,42 +188,37 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
     }
   }
 
-  Marker _buildMarker(LatLng position) {
-    // Example of a different marker icon (you can replace this with your custom icon)
-    return Marker(
-      width: 35.0,
-      height: 35.0,
-      point: position,
-      child: const Icon(
-            Icons.circle_rounded,
-            size: 35.0,
-            color: Colors.blue,
-      ),
-    );
-  }
-
   void _toggleMenu() {
             setState(() {
               _isMenuExpanded = !_isMenuExpanded;
             });
           }
 
-  void _openDestinationSelectionPage() async {
-    final selectedAddress = await Navigator.of(context).push(
-      MaterialPageRoute<String>(
-        builder: (BuildContext context) => DestinationSelectionPage(
-          userLocation: _userLocation,
-        ),
+  Marker _buildMarker(LatLng position) {
+    // Example of a different marker icon (you can replace this with your custom icon)
+    return Marker(
+      width: 80.0,
+      height: 80.0,
+      point: position,
+      child: //taxi icon
+      Image.asset(
+        AppIcons.icTaxi,
+        //reduces the image size
+        scale: 0.8,
       ),
     );
-
-    if (selectedAddress != null) {
-      print("Selected address: $selectedAddress");
-      // Handle the selected destination address and update the map.
-      // You can use geocoding to get the coordinates of the selected address.
-      // Update the _destinationLocation and set the destination marker on the map.
-    }
   }
+
+  /*final mapMarkers = [
+  MapMarker(
+      userId: "Client 1",
+      location: const LatLng(33.707173, -7.362968),
+      ),
+  MapMarker(
+      userId: "Client 2",
+      location: const LatLng(33.705118, -7.357584),
+      ),
+];*/
 
   @override
   Widget build(BuildContext context) {
@@ -178,19 +245,27 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                   _marker,
                 ],
               ),
+              PolylineLayer(
+                polylines: _polylines,
+              ),
             ],
           ),
-          // Updated Positioned widget for a more visually appealing design
           Positioned(
             bottom: 16.0,
             left: 16.0,
             child: FloatingActionButton(
-              heroTag: "search",
+              heroTag: "cancelTrip",
               onPressed: () {
-                _openDestinationSelectionPage();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const driverHomePage.MainPage(),
+                  ),
+                );
+                //dispose();
               },
               backgroundColor: AppColors.primaryColor,
-              child: const Icon(Icons.search, size: 32),
+              child: const Icon(Icons.cancel),
             ),
           ),
           Positioned(
@@ -227,7 +302,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                   backgroundColor: AppColors.primaryColor,
                                   child: const Icon(Icons.remove),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                                 FloatingActionButton(
                                   heroTag: "gps",
                                   onPressed: () {
@@ -237,16 +312,16 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.gps_fixed),
+                                  child: const Icon(Icons.gps_fixed),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                                 FloatingActionButton(
                                   heroTag: "settings",
                                   onPressed: () {},
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.settings),
+                                  child: const Icon(Icons.settings),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                               ],
                             ),
                           ),
@@ -265,10 +340,12 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                       ],
                     ),
                   ),
+                    
         ],
       ),
     );
   }
+
 
   void _animatedMapMove(LatLng destLocation, double destZoom) {
     // Create some tweens. These serve to split up the transition from one location to another.
@@ -304,5 +381,6 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
     controller.forward();
   }
+
 
 }
