@@ -54,7 +54,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
 
     //stomp client
 
-    _timer = Timer.periodic(Duration(seconds: 10), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 10), (timer) {
       _getCurrentLocation();
       print("**********> $_userLocation");
       sendLocation(_userLocation);
@@ -227,7 +227,7 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                   backgroundColor: AppColors.primaryColor,
                                   child: const Icon(Icons.remove),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                                 FloatingActionButton(
                                   heroTag: "gps",
                                   onPressed: () {
@@ -237,16 +237,16 @@ class _MainPageState extends State<MainPage> with TickerProviderStateMixin {
                                     );
                                   },
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.gps_fixed),
+                                  child: const Icon(Icons.gps_fixed),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                                 FloatingActionButton(
                                   heroTag: "settings",
                                   onPressed: () {},
                                   backgroundColor: AppColors.primaryColor,
-                                  child: Icon(Icons.settings),
+                                  child: const Icon(Icons.settings),
                                 ),
-                                SizedBox(height: 16.0),
+                                const SizedBox(height: 16.0),
                               ],
                             ),
                           ),

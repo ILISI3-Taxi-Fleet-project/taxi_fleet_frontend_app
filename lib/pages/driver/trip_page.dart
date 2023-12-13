@@ -9,7 +9,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
-import 'package:taxi_fleet_frontend_app/components/client_marker.dart';
 import 'package:taxi_fleet_frontend_app/config/app_constants.dart';
 import 'package:taxi_fleet_frontend_app/config/app_icons.dart';
 import 'package:taxi_fleet_frontend_app/config/stomp_client.dart';
@@ -31,7 +30,9 @@ class TripPage extends StatefulWidget {
 class _TripPageState extends State<TripPage> with TickerProviderStateMixin {
   late final MapController _mapController;
   late LatLng _userLocation;
-  late Marker _marker;
+  late LatLng _clientLocation;
+  late Marker _driverMarker;
+  late Marker _clientMarker;
   late List<Polyline> _polylines;
   late bool _firstLocationUpdate;
   late StompClientConfig _stompClientConfig;
@@ -47,28 +48,22 @@ class _TripPageState extends State<TripPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    /*_stompClientConfig = StompClientConfig(
-      port: 8888,
-      serviceName: 'MSTXFLEET-LOCATION', // Replace with your microservice's port
-      onConnect: onConnect,
-      userId: Provider.of<SharedPrefs>(context, listen: false).userId,
-    );
-    _locationStompClient = _stompClientConfig.connect();
-
     _stompClientConfig = StompClientConfig(
       port: 8888,
       serviceName: 'MSTXFLEET-TRIP', // Replace with your microservice's port
       onConnect: onConnect,
       userId: Provider.of<SharedPrefs>(context, listen: false).userId,
     );
-    _tripStompClient = _stompClientConfig.connect();*/
+    _tripStompClient = _stompClientConfig.connect();
 
     _polylines = [];
     _isMenuExpanded = false;
     _firstLocationUpdate = true;
     _mapController = MapController();
     _userLocation = const LatLng(0, 0);
-    _marker = _buildMarker(_userLocation);
+    _clientLocation = const LatLng(0, 0);
+    _driverMarker = _buildDriverMarker(_userLocation);
+    _clientMarker = _buildClientMarker(_clientLocation);
 
     decodeWkt(widget.path);
 
@@ -90,7 +85,7 @@ class _TripPageState extends State<TripPage> with TickerProviderStateMixin {
     print('getting user location');
     setState(() {
       _userLocation = Provider.of<LocationProvider>(context, listen: false).userLocation;
-      _marker = _buildMarker(_userLocation);
+      _driverMarker = _buildDriverMarker(_userLocation);
     });
   }
 
@@ -115,44 +110,38 @@ class _TripPageState extends State<TripPage> with TickerProviderStateMixin {
       });
   }
 
-  /*void onConnect(StompFrame frame) {
+  void onConnect(StompFrame frame) {
     print('Connected to the trip service');
 
     _tripStompClient.subscribe(
-      destination: '/topic/trip.path/${Provider.of<SharedPrefs>(context, listen: false).userId}',
+      destination: '/topic/location.getPassengersLocation/${Provider.of<SharedPrefs>(context, listen: false).userId}',
       callback: (StompFrame frame) {
-        //update isLoading to false
-        /*setState(() {
-          _isLoading = false;
-        });*/
 
         //get a list of LatLng coordinates from the message body
         print('Received a message from the trip service: ${frame.body}');
         
         final Map<String, dynamic> data = jsonDecode(frame.body!);
-        final String coordinates = data['path'];
-        print('Received a message from the trip service: $coordinates');
-        decodeWkt(coordinates);
+        final String location = data['passengerLocations'][0]['location'];
+        final List<String> latLng = location.substring(6, location.length - 1).split(' ');
+        final double latitude = double.parse(latLng[1]);
+        final double longitude = double.parse(latLng[0]);
+        final LatLng clientLocation = LatLng(latitude, longitude);
+
+        setState(() {
+          _clientLocation = clientLocation;
+          _clientMarker = _buildDriverMarker(_clientLocation);
+        });
       },
     );
 
-    /*_tripStompClient.send(
-      destination: '/app/trip.nearbyUsers',
-    );*/
+    // get deiver location every 10 seconds with timer
+    Timer.periodic(const Duration(seconds: 10), (timer) {
+      print('---------Sending a message to the trip service');
+      _tripStompClient.send(
+        destination: '/app/location.getPassengersLocation',
+      );
+    });
 
-  }*/
-
-  // accept a trip request
-  void acceptTripRequest(String passengerId) {
-    // Send location to the microservice
-    _tripStompClient.send(
-      destination: '/app/trip.accept',
-      body: jsonEncode(
-        {
-          'passengerId': passengerId,
-        }
-        ),
-    );
   }
 
   
@@ -176,7 +165,7 @@ class _TripPageState extends State<TripPage> with TickerProviderStateMixin {
       setState(() {
         _userLocation = LatLng(position.latitude, position.longitude);
         Provider.of<LocationProvider>(context, listen: false).updateUserLocation(_userLocation);
-        _marker = _buildMarker(_userLocation);
+        _driverMarker = _buildDriverMarker(_userLocation);
         if (_firstLocationUpdate) {
           // Move the map to the user's location only for the first time
           _mapController.move(_userLocation, _mapController.zoom);
@@ -194,7 +183,7 @@ class _TripPageState extends State<TripPage> with TickerProviderStateMixin {
             });
           }
 
-  Marker _buildMarker(LatLng position) {
+  Marker _buildDriverMarker(LatLng position) {
     // Example of a different marker icon (you can replace this with your custom icon)
     return Marker(
       width: 80.0,
@@ -209,16 +198,20 @@ class _TripPageState extends State<TripPage> with TickerProviderStateMixin {
     );
   }
 
-  /*final mapMarkers = [
-  MapMarker(
-      userId: "Client 1",
-      location: const LatLng(33.707173, -7.362968),
+  Marker _buildClientMarker(LatLng position) {
+    // Example of a different marker icon (you can replace this with your custom icon)
+    return Marker(
+      width: 80.0,
+      height: 80.0,
+      point: position,
+      child: //taxi icon
+      Image.asset(
+        AppIcons.icClient,
+        //reduces the image size
+        scale: 0.8,
       ),
-  MapMarker(
-      userId: "Client 2",
-      location: const LatLng(33.705118, -7.357584),
-      ),
-];*/
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -242,7 +235,8 @@ class _TripPageState extends State<TripPage> with TickerProviderStateMixin {
               ),
               MarkerLayer(
                 markers: [
-                  _marker,
+                  _driverMarker,
+                  _clientMarker,
                 ],
               ),
               PolylineLayer(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -34,6 +35,7 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
   late Marker _userMarker;
   late Marker _driverMarker;
   late List<Polyline> _polylines;
+  late List<Polyline> _polylinesDriver;
   late bool _isMenuExpanded;
   late bool _isLoading;
 
@@ -63,6 +65,7 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
     _updateUserLocation();
     _mapController = MapController();
     _polylines = <Polyline>[];
+    _polylinesDriver = <Polyline>[];
 
   }
 
@@ -94,12 +97,58 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
       });
   }
 
+  void decodeWktDriver(String multiLineString) {
+      final List<Polyline> polylines = <Polyline>[];
+      final geometry = MultiLineString.parse(multiLineString, format: WKT.geometry);
+      final Iterable<LineString> lines = geometry.lineStrings;
+      for (final line in lines) {
+        // iterate over the points in the line by 2 points
+        final List<LatLng> points = [];
+        for (var i = 0; i < line.chain.values.length; i += 2) {
+          points.add(LatLng(line.chain.values.elementAt(i + 1), line.chain.values.elementAt(i)));
+        }
+        polylines.add(Polyline(
+            points: points,
+            strokeWidth: 4.0,
+            color: Colors.green,
+        ));
+      }
+      setState(() {
+        _polylinesDriver = polylines;
+      });
+  }
+
   //send destination to the trip service when _stompClient is connected
   void onConnect(StompFrame frame) {
     print('Connected to the trip service');
 
     _stompClient.subscribe(
       destination: '/topic/trip.path/${Provider.of<SharedPrefs>(context, listen: false).userId}',
+      callback: (StompFrame frame) {
+        //update isLoading to false
+        setState(() {
+          _isLoading = false;
+        });
+
+        //get a list of LatLng coordinates from the message body
+        print('Received a message from the trip service: ${frame.body}');
+        
+        final Map<String, dynamic> data = jsonDecode(frame.body!);
+        final String coordinates = data['path'];
+        decodeWktDriver(coordinates);
+
+        // get deiver location every 10 seconds with timer
+        Timer.periodic(const Duration(seconds: 10), (timer) {
+          print('---------Sending a message to the trip service');
+          _stompClient.send(
+            destination: '/app/location.getDriverLocation',
+          );
+        });
+      },
+    );
+
+    _stompClient.subscribe(
+      destination: '/topic/trip.pathDestination/${Provider.of<SharedPrefs>(context, listen: false).userId}',
       callback: (StompFrame frame) {
         //update isLoading to false
         setState(() {
@@ -147,13 +196,6 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
         },
       ),
     );
-
-    // get deiver location every 10 seconds
-    Future.delayed(const Duration(seconds: 10), () {
-      _stompClient.send(
-        destination: '/app/location.getDriverLocation',
-      );
-    });
 
   }
 
@@ -228,7 +270,7 @@ class _RecommendationPageState extends State<RecommendationPage> with SingleTick
             ],
           ),
           PolylineLayer(
-            polylines: _polylines,
+            polylines: _polylines + _polylinesDriver,
           ),
         ],
       ),
